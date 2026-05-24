@@ -152,3 +152,13 @@ select.slot-training { border-left: 4px solid #007bff; background: #f0f7ff; }
 @media (max-width: 768px) {
   .fantasy-title { font-size: 2rem; }
 }
+
+/* ---- Training ground roster table ---- */
+.tg-roster-table th,
+.tg-roster-table td {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.tg-roster-table td form {
+  display: inline;
+}

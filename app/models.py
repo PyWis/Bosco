@@ -189,14 +189,20 @@ SPECIALIZATIONS = {
 }
 
 def m_level_step_cost(level_num: int) -> int:
-    """Punti m_training_pts necessari per avanzare da M(level_num) a M(level_num+1)."""
+    """Punti training_pts necessari per avanzare da M(level_num) a M(level_num+1)."""
     return int(28 * (1.37 ** (level_num - 1)))
 
 def m_cumulative_threshold(level_num: int) -> int:
-    """Totale m_training_pts cumulativo per trovarsi a M(level_num). M0 e M1 = 0."""
+    """Totale training_pts cumulativo per trovarsi a M(level_num). M0 e M1 = 0."""
     if level_num <= 1:
         return 0
     return sum(m_level_step_cost(k) for k in range(1, level_num))
+
+def stat_upgrade_cost(current_stat_value: int) -> int:
+    """Costo in m_training_pts per aumentare una statistica di 1 punto.
+    Più la stat è alta, più costa: floor(stat / 5) + 1.
+    Es: 0-4 → 1 pt, 5-9 → 2 pt, 10-14 → 3 pt, 15-19 → 4 pt, ecc."""
+    return (current_stat_value // 5) + 1
 
 def generate_stats(age: int):
     """Genera VIT, STR, MAG, DEX casuali rispettando i vincoli di età.

@@ -88,51 +88,102 @@
 {% set m1_list = m_inhabitants | rejectattr('level_num', 'eq', 0) | list %}
 {% if m1_list %}
 <h4>🗡️ Abitanti M nel Campo</h4>
+
+{# Legenda costo potenziamento #}
+<p class="text-muted small mb-2">
+  <i class="bi bi-info-circle"></i>
+  I <strong>⚔️ Pt Campo</strong> si accumulano assegnando slot «Campo Addes.» nel Registro Abitanti.
+  Spendili qui per aumentare le statistiche del personaggio.
+  Costo: <em>floor(stat/5)+1</em> pt per +1.
+</p>
+
 <div class="table-responsive">
-  <table class="table table-hover align-middle">
+  <table class="table table-hover align-middle tg-roster-table">
     <thead class="table-dark">
       <tr>
-        <th>Nome</th>
-        <th>Classe</th>
-        <th>Spec.</th>
-        <th>VIT</th><th>STR</th><th>MAG</th><th>DEX</th><th>Tot.</th>
-        <th>EXP / Nec.</th>
-        <th>Campo</th>
+        <th>Nome · Classe</th>
+        <th>EXP Allena</th>
+        <th class="text-center">⚔️ Pt Campo</th>
+        <th class="text-center">VIT</th>
+        <th class="text-center">STR</th>
+        <th class="text-center">MAG</th>
+        <th class="text-center">DEX</th>
+        <th class="text-center">Tot.</th>
+        <th>In Campo</th>
       </tr>
     </thead>
     <tbody>
       {% for inh in m1_list %}
+      {# Pre-calcola costi per non duplicare la formula nel template #}
+      {% set c_vit = ((inh.stat_vit or 0) // 5 + 1) %}
+      {% set c_str = ((inh.stat_str or 0) // 5 + 1) %}
+      {% set c_mag = ((inh.stat_mag or 0) // 5 + 1) %}
+      {% set c_dex = ((inh.stat_dex or 0) // 5 + 1) %}
+      {% set pts   = (inh.m_training_pts or 0) %}
       <tr class="{% if inh.works_in_training_ground %}table-success{% endif %}">
-        <td><strong>{{ inh.full_name }}</strong></td>
+
+        {# Nome + livello + spec #}
         <td>
+          <strong>{{ inh.full_name }}</strong><br>
           <span class="badge {% if inh.level_type == 'GM' %}bg-warning text-dark{% else %}bg-dark{% endif %}">
             {{ inh.level_label }}
           </span>
+          {% if inh.specialization %}
+          <small class="text-muted ms-1">{{ inh.specialization }}</small>
+          {% endif %}
         </td>
-        <td>{{ inh.specialization or '—' }}</td>
-        <td>{{ inh.stat_vit or '—' }}</td>
-        <td>{{ inh.stat_str or '—' }}</td>
-        <td>{{ inh.stat_mag or '—' }}</td>
-        <td>{{ inh.stat_dex or '—' }}</td>
-        <td>
-          {% if inh.stat_vit is not none %}
-            <strong>{{ (inh.stat_vit or 0) + (inh.stat_str or 0) + (inh.stat_mag or 0) + (inh.stat_dex or 0) }}</strong>
-          {% else %}—{% endif %}
-        </td>
+
+        {# EXP allenamento (Allena → livello M) #}
         <td>
           {% if inh.m_exp is not none and inh.m_exp_needed is not none %}
             <small><strong>{{ inh.m_exp }}</strong> / {{ inh.m_exp_needed }}</small>
           {% elif inh.level_type == 'GM' %}
-            <small class="text-warning">Gran Maestro</small>
+            <small class="text-warning fw-bold">Gran Maestro</small>
           {% elif inh.level_type == 'M' and inh.level_num >= 20 %}
-            <small class="text-muted">Prossimo: GM</small>
+            <small class="text-muted">→ GM</small>
           {% else %}
             <small class="text-muted">—</small>
           {% endif %}
         </td>
+
+        {# Punti Campo disponibili #}
+        <td class="text-center">
+          <span class="badge fs-6 {% if pts > 0 %}bg-danger{% else %}bg-secondary{% endif %}">
+            {{ pts }}
+          </span>
+        </td>
+
+        {# Macro helper per ogni stat #}
+        {% macro stat_cell(stat_name, cur, cost, color) %}
+        <td class="text-center">
+          <div class="fw-bold mb-1">{{ cur }}</div>
+          <form method="post" action="{{ url_for('training_ground.upgrade_stat', inh_id=inh.id) }}">
+            <input type="hidden" name="stat" value="{{ stat_name }}">
+            <button type="submit"
+                    class="btn btn-outline-{{ color }} py-0 px-1"
+                    style="font-size:0.7rem;line-height:1.4"
+                    title="{{ cost }} pt per +1 {{ stat_name|upper }}"
+                    {% if pts < cost %}disabled{% endif %}>
+              +1&thinsp;<span class="text-muted">({{ cost }}⚔️)</span>
+            </button>
+          </form>
+        </td>
+        {% endmacro %}
+
+        {{ stat_cell('vit', inh.stat_vit or 0, c_vit, 'danger')  }}
+        {{ stat_cell('str', inh.stat_str or 0, c_str, 'warning') }}
+        {{ stat_cell('mag', inh.stat_mag or 0, c_mag, 'primary') }}
+        {{ stat_cell('dex', inh.stat_dex or 0, c_dex, 'success') }}
+
+        {# Totale #}
+        <td class="text-center fw-bold">
+          {{ (inh.stat_vit or 0) + (inh.stat_str or 0) + (inh.stat_mag or 0) + (inh.stat_dex or 0) }}
+        </td>
+
+        {# Stato campo #}
         <td>
           <span class="badge {% if inh.works_in_training_ground %}bg-success{% else %}bg-secondary{% endif %}">
-            {% if inh.works_in_training_ground %}In allenamento{% else %}Fuori{% endif %}
+            {% if inh.works_in_training_ground %}⚔️ Attivo{% else %}Fuori{% endif %}
           </span>
         </td>
       </tr>
@@ -142,9 +193,9 @@
 </div>
 <p class="text-muted small">
   <i class="bi bi-info-circle"></i>
-  Per inviare o richiamare un abitante dal Campo di Addestramento usa il
+  Per inviare o richiamare un abitante dal Campo usa il
   <a href="{{ url_for('inhabitants.overview') }}">Registro Abitanti</a>
-  (slot "Campo Addes.").
+  (slot «Campo Addes.»).
 </p>
 {% elif not m0_list %}
 <div class="alert alert-info mt-3">
