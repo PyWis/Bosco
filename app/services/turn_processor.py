@@ -149,17 +149,20 @@ def process_village_turn(village: Village, gs: GameState) -> TurnLog:
 
     # ------------------------------------------------------------------
     # 6. Starvation
+    #    -1 .. -5  → 1 morto casuale
+    #    ≤ -6      → 2 morti casuali
+    #    Dopo le uccisioni il cibo viene riportato a 0.
     # ------------------------------------------------------------------
     if village.food < 0:
-        score   = abs(village.food)
-        to_kill = max(1, int((score - 5) / 5)) if score > 5 else 0
-        if to_kill > 0:
-            candidates = [i for i in alive]
-            random.shuffle(candidates)
-            for inh in candidates[:to_kill]:
-                inh.is_alive = False
-                deaths += 1
-                lines.append(f"💀 {inh.full_name} è morto per fame.")
+        to_kill = 2 if village.food <= -6 else 1
+        candidates = [i for i in alive if i.is_alive]
+        random.shuffle(candidates)
+        for inh in candidates[:to_kill]:
+            inh.is_alive = False
+            deaths += 1
+            lines.append(f"💀 {inh.full_name} è morto per fame.")
+        village.food = 0
+        lines.append("🌾 Le riserve di cibo sono state azzerate dopo la carestia.")
 
     # ------------------------------------------------------------------
     # 7. New arrival
