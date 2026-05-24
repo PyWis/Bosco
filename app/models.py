@@ -301,20 +301,28 @@ class Inhabitant(db.Model):
         return 2
 
     @property
-    def pts_to_next_level(self):
-        """Training points needed to reach next J level."""
-        if self.level_type != 'J' or self.level_num >= 21:
-            return None
-        target = self.level_num + 1
-        return target * 28
+    def _level_threshold(self):
+        """Totale EXP cumulativo necessario per essere al livello attuale."""
+        return self.level_num * 28
 
     @property
-    def pts_needed(self):
-        """Remaining points to level up."""
-        needed = self.pts_to_next_level
-        if needed is None:
+    def _next_level_threshold(self):
+        """Totale EXP cumulativo necessario per raggiungere il livello successivo."""
+        return (self.level_num + 1) * 28
+
+    @property
+    def exp(self):
+        """EXP 'libera': accumulata sul livello corrente, non quella già usata."""
+        if self.level_type != 'J':
             return None
-        return max(0, needed - self.training_pts)
+        return max(0, self.training_pts - self._level_threshold)
+
+    @property
+    def exp_needed(self):
+        """EXP necessaria per completare il livello corrente (costo del passo)."""
+        if self.level_type != 'J' or self.level_num >= 21:
+            return None
+        return self._next_level_threshold - self._level_threshold
 
     @property
     def slots(self):

@@ -67,7 +67,7 @@
         <th>Sesso</th>
         <th>Età</th>
         <th>Livello</th>
-        <th>PX / Serve</th>
+        <th>EXP / Necessaria</th>
         <th>Cibo/T</th>
         <th>Slot 1</th>
         <th>Slot 2</th>
@@ -95,14 +95,15 @@
           </span>
         </td>
         <td>
-          {% if inh.pts_to_next_level is not none %}
-            <small>{{ inh.training_pts }} / {{ inh.pts_to_next_level }}
-              <span class="text-muted">(mancano {{ inh.pts_needed }})</span>
+          {% if inh.exp is not none and inh.exp_needed is not none %}
+            <small>
+              <strong>{{ inh.exp }}</strong>
+              <span class="text-muted">/ {{ inh.exp_needed }}</span>
             </small>
           {% elif inh.level_type == 'M' %}
             <small class="text-muted">Veterano</small>
           {% else %}
-            <small class="text-muted">Max</small>
+            <small class="text-muted">Max J</small>
           {% endif %}
         </td>
         <td>
