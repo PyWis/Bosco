@@ -322,15 +322,27 @@ class Inhabitant(db.Model):
 
     @property
     def food_slots(self):
+        """Slot produttivi nel Campo (usati per calcolare il cibo prodotto)."""
         return sum(1 for s in self.slots if s == 'field')
 
     @property
     def tool_slots(self):
+        """Slot produttivi in Officina (usati per calcolare gli attrezzi prodotti)."""
         return sum(1 for s in self.slots if s == 'workshop')
 
     @property
     def train_slots(self):
         return sum(1 for s in self.slots if s == 'training')
+
+    @property
+    def works_in_field(self):
+        """True se l'abitante ha almeno 1 slot assegnato al Campo (occupa 1 posto)."""
+        return any(s == 'field' for s in self.slots)
+
+    @property
+    def works_in_workshop(self):
+        """True se l'abitante ha almeno 1 slot assegnato all'Officina (occupa 1 posto)."""
+        return any(s == 'workshop' for s in self.slots)
 
     def set_slot(self, idx, value):
         """idx: 1-4"""

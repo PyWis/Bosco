@@ -61,24 +61,24 @@ def assign(inh_id):
             )
             return redirect(url_for('inhabitants.overview'))
 
-    # Controllo capacità Campo / Officina
-    field_slots_this    = sum(1 for v in slots_data if v == 'field')
-    workshop_slots_this = sum(1 for v in slots_data if v == 'workshop')
+    # Controllo capacità Campo / Officina: 1 abitante = 1 posto,
+    # indipendentemente da quante ore lavora lì.
+    this_in_field    = any(v == 'field'    for v in slots_data)
+    this_in_workshop = any(v == 'workshop' for v in slots_data)
 
-    other_alive    = [i for i in village.alive_inhabitants
-                      if i.id != inh_id and i.can_work]
-    total_field    = sum(i.food_slots for i in other_alive) + field_slots_this
-    total_workshop = sum(i.tool_slots for i in other_alive) + workshop_slots_this
+    other_alive    = [i for i in village.alive_inhabitants if i.id != inh_id]
+    total_field    = sum(1 for i in other_alive if i.works_in_field)    + (1 if this_in_field    else 0)
+    total_workshop = sum(1 for i in other_alive if i.works_in_workshop) + (1 if this_in_workshop else 0)
 
     if total_field > village.max_field_workers:
         flash(
-            f'Capacità Campi superata ({village.max_field_workers} slot disponibili).',
+            f'Capacità Campi superata ({village.max_field_workers} posti disponibili).',
             'danger'
         )
         return redirect(url_for('inhabitants.overview'))
     if total_workshop > village.max_workshop_workers:
         flash(
-            f'Capacità Officina superata ({village.max_workshop_workers} slot disponibili).',
+            f'Capacità Officina superata ({village.max_workshop_workers} posti disponibili).',
             'danger'
         )
         return redirect(url_for('inhabitants.overview'))

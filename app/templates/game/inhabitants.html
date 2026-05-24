@@ -16,27 +16,35 @@
 <!-- Capacity indicators -->
 <div class="row mb-4 g-2">
   <div class="col-md-6">
-    {% set used_field = namespace(v=0) %}
+    {% set in_field = namespace(v=0) %}
     {% for inh in inhabitants %}
-      {% set used_field.v = used_field.v + inh.food_slots %}
+      {% if inh.works_in_field %}{% set in_field.v = in_field.v + 1 %}{% endif %}
     {% endfor %}
-    <small>🌾 Campi: {{ used_field.v }} / {{ village.max_field_workers }} slot usati</small>
+    {% set field_pct = ((in_field.v / village.max_field_workers * 100)|int) if village.max_field_workers > 0 else 0 %}
+    <small>
+      🌾 Campi: <strong>{{ in_field.v }} / {{ village.max_field_workers }} abitanti</strong>
+      <span class="text-muted">
+        — produzione: {{ inhabitants | sum(attribute='food_slots') }} cibo/turno
+      </span>
+    </small>
     <div class="progress" style="height:6px">
-      <div class="progress-bar bg-success"
-           style="width:{{ ((used_field.v / village.max_field_workers * 100)|int) if village.max_field_workers > 0 else 0 }}%">
-      </div>
+      <div class="progress-bar bg-success" style="width:{{ field_pct }}%"></div>
     </div>
   </div>
   <div class="col-md-6">
-    {% set used_ws = namespace(v=0) %}
+    {% set in_ws = namespace(v=0) %}
     {% for inh in inhabitants %}
-      {% set used_ws.v = used_ws.v + inh.tool_slots %}
+      {% if inh.works_in_workshop %}{% set in_ws.v = in_ws.v + 1 %}{% endif %}
     {% endfor %}
-    <small>⚒️  Officina: {{ used_ws.v }} / {{ village.max_workshop_workers }} slot usati</small>
+    {% set ws_pct = ((in_ws.v / village.max_workshop_workers * 100)|int) if village.max_workshop_workers > 0 else 0 %}
+    <small>
+      ⚒️  Officina: <strong>{{ in_ws.v }} / {{ village.max_workshop_workers }} abitanti</strong>
+      <span class="text-muted">
+        — produzione: {{ inhabitants | sum(attribute='tool_slots') }} attrezzi/turno
+      </span>
+    </small>
     <div class="progress" style="height:6px">
-      <div class="progress-bar bg-warning"
-           style="width:{{ ((used_ws.v / village.max_workshop_workers * 100)|int) if village.max_workshop_workers > 0 else 0 }}%">
-      </div>
+      <div class="progress-bar bg-warning" style="width:{{ ws_pct }}%"></div>
     </div>
   </div>
 </div>
