@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Scegli il tuo Regno – Bosco delle Kjxii{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+  <div class="col-md-7">
+    <div class="card shadow">
+      <div class="card-header kingdom-card-header fw-bold text-center">
+        <i class="bi bi-map-fill"></i> Fonda il tuo Villaggio
+      </div>
+      <div class="card-body p-4">
+        <p class="text-muted mb-4">
+          Prima di iniziare la tua avventura, scegli il nome del tuo villaggio,
+          del tuo regno e l'alleanza a cui appartenere.
+        </p>
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Nome del Villaggio</label>
+            <input type="text" name="village_name" class="form-control" required
+                   placeholder="es. Porto Antico, Rocca di Ferro…"
+                   value="{{ current_user.village.name if current_user.village else '' }}"/>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Nome del Regno</label>
+            <input type="text" name="kingdom_name" class="form-control" required
+                   placeholder="es. Signoria dei Monti, Feudo delle Nuvole…"
+                   value="{{ current_user.village.kingdom_name if current_user.village else '' }}"/>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-bold">Alleanza</label>
+            <div class="row g-3">
+              <!-- Kenn -->
+              <div class="col-md-4">
+                <input type="radio" class="btn-check" name="kingdom"
+                       id="k_kenn" value="Kenn"
+                       {{ 'checked' if current_user.kingdom == 'Kenn' else '' }} required/>
+                <label class="btn btn-outline-warning w-100 py-3" for="k_kenn">
+                  <div class="fs-2">🟡</div>
+                  <div class="fw-bold">Kenn</div>
+                  <small class="text-muted">Interfaccia Dorata</small>
+                </label>
+              </div>
+              <!-- Drassi -->
+              <div class="col-md-4">
+                <input type="radio" class="btn-check" name="kingdom"
+                       id="k_drassi" value="Drassi"
+                       {{ 'checked' if current_user.kingdom == 'Drassi' else '' }}/>
+                <label class="btn btn-outline-primary w-100 py-3" for="k_drassi">
+                  <div class="fs-2">🔵</div>
+                  <div class="fw-bold">Drassi</div>
+                  <small class="text-muted">Interfaccia Azzurra</small>
+                </label>
+              </div>
+              <!-- Whasi -->
+              <div class="col-md-4">
+                <input type="radio" class="btn-check" name="kingdom"
+                       id="k_whasi" value="Whasi"
+                       {{ 'checked' if current_user.kingdom == 'Whasi' else '' }}/>
+                <label class="btn btn-outline-danger w-100 py-3" for="k_whasi">
+                  <div class="fs-2">🔴</div>
+                  <div class="fw-bold">Whasi</div>
+                  <small class="text-muted">Interfaccia Scarlatta</small>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn kingdom-btn-primary btn-lg">
+              <i class="bi bi-flag-fill"></i> Fonda il Villaggio
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

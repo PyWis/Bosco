@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Registro Abitanti – {{ village.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h2 class="mb-0">👥 Registro Abitanti</h2>
+  <div>
+    <span class="badge bg-success fs-6 me-2">🌾 {{ village.food }}</span>
+    <span class="badge bg-secondary fs-6">⚒️  {{ village.tools }}</span>
+    <span class="badge bg-info text-dark fs-6 ms-2">
+      {{ inhabitants|length }} / {{ village.max_inhabitants }}
+    </span>
+  </div>
+</div>
+
+<!-- Capacity indicators -->
+<div class="row mb-4 g-2">
+  <div class="col-md-6">
+    {% set used_field = namespace(v=0) %}
+    {% for inh in inhabitants %}
+      {% set used_field.v = used_field.v + inh.food_slots %}
+    {% endfor %}
+    <small>🌾 Campi: {{ used_field.v }} / {{ village.max_field_workers }} slot usati</small>
+    <div class="progress" style="height:6px">
+      <div class="progress-bar bg-success"
+           style="width:{{ ((used_field.v / village.max_field_workers * 100)|int) if village.max_field_workers > 0 else 0 }}%">
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    {% set used_ws = namespace(v=0) %}
+    {% for inh in inhabitants %}
+      {% set used_ws.v = used_ws.v + inh.tool_slots %}
+    {% endfor %}
+    <small>⚒️  Officina: {{ used_ws.v }} / {{ village.max_workshop_workers }} slot usati</small>
+    <div class="progress" style="height:6px">
+      <div class="progress-bar bg-warning"
+           style="width:{{ ((used_ws.v / village.max_workshop_workers * 100)|int) if village.max_workshop_workers > 0 else 0 }}%">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="mb-3 d-flex flex-wrap gap-2">
+  <span class="badge bg-secondary">⬜ Inattivo</span>
+  <span class="badge bg-success">🌾 Campo</span>
+  <span class="badge bg-warning text-dark">⚒️  Officina</span>
+  <span class="badge bg-primary">🎯 Allenamento</span>
+</div>
+
+<!-- Bulk save form -->
+<form method="post" action="{{ url_for('inhabitants.assign_all') }}">
+<div class="table-responsive">
+  <table class="table table-hover align-middle inhabitants-table">
+    <thead class="table-dark">
+      <tr>
+        <th>Nome</th>
+        <th>Sesso</th>
+        <th>Età</th>
+        <th>Livello</th>
+        <th>PX / Serve</th>
+        <th>Cibo/T</th>
+        <th>Slot 1</th>
+        <th>Slot 2</th>
+        <th>Slot 3</th>
+        <th>Slot 4</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for inh in inhabitants %}
+      <tr class="{% if not inh.can_work %}table-secondary{% endif %}">
+        <td>
+          <strong>{{ inh.full_name }}</strong>
+          {% if not inh.can_work %}
+            <span class="badge bg-info text-dark ms-1">U{{ inh.age }}a</span>
+          {% endif %}
+        </td>
+        <td>{{ '♂' if inh.gender == 'M' else '♀' }}</td>
+        <td>{{ inh.age }}</td>
+        <td>
+          <span class="badge {% if inh.level_type == 'M' %}bg-dark{% else %}bg-primary{% endif %}">
+            {{ inh.level_label }}
+          </span>
+        </td>
+        <td>
+          {% if inh.pts_to_next_level is not none %}
+            <small>{{ inh.training_pts }} / {{ inh.pts_to_next_level }}
+              <span class="text-muted">(mancano {{ inh.pts_needed }})</span>
+            </small>
+          {% elif inh.level_type == 'M' %}
+            <small class="text-muted">Veterano</small>
+          {% else %}
+            <small class="text-muted">Max</small>
+          {% endif %}
+        </td>
+        <td>
+          <span class="badge {% if inh.food_cost == 3 %}bg-danger{% else %}bg-success{% endif %}">
+            {{ inh.food_cost }}
+          </span>
+        </td>
+        {% if inh.can_work %}
+          {% for s in range(1, 5) %}
+          <td>
+            {% set cur = inh.slots[s-1] %}
+            <select name="inh_{{ inh.id }}_slot{{ s }}"
+                    class="form-select form-select-sm slot-select slot-{{ cur }}"
+                    onchange="this.className='form-select form-select-sm slot-select slot-'+this.value">
+              <option value="idle"     {% if cur=='idle'     %}selected{% endif %}>⬜ Inattivo</option>
+              <option value="field"    {% if cur=='field'    %}selected{% endif %}>🌾 Campo</option>
+              {% if inh.can_use_workshop %}
+              <option value="workshop" {% if cur=='workshop' %}selected{% endif %}>⚒️  Officina</option>
+              {% endif %}
+              {% if inh.can_train %}
+              <option value="training" {% if cur=='training' %}selected{% endif %}>🎯 Allena</option>
+              {% endif %}
+            </select>
+          </td>
+          {% endfor %}
+        {% else %}
+          <td colspan="4" class="text-center text-muted">
+            <small>Troppo giovane ({{ inh.age }} anni)</small>
+          </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="d-flex justify-content-end mt-2">
+  <button type="submit" class="btn kingdom-btn-primary">
+    <i class="bi bi-floppy-fill"></i> Salva Assegnazioni
+  </button>
+</div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Update dropdown color on page load
+document.querySelectorAll('.slot-select').forEach(sel => {
+  sel.className = 'form-select form-select-sm slot-select slot-' + sel.value;
+});
+</script>
+{% endblock %}

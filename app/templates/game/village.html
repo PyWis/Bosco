@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}{{ village.name }} – Villaggio{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div>
+    <h2 class="mb-0">🏘️ {{ village.name }}</h2>
+    <small class="text-muted">{{ village.kingdom_name }} &bull; {{ current_user.kingdom }}</small>
+  </div>
+  <div class="text-end">
+    <span class="badge bg-success fs-6 me-2">🌾 {{ village.food }} cibo</span>
+    <span class="badge bg-secondary fs-6">⚒️  {{ village.tools }} attrezzi</span>
+  </div>
+</div>
+
+<!-- Population bar -->
+<div class="mb-4">
+  {% set pop = village.total_inhabitants %}
+  {% set cap = village.max_inhabitants %}
+  {% set pct = ((pop / cap * 100) | int) if cap > 0 else 0 %}
+  <div class="d-flex justify-content-between">
+    <small>👥 Popolazione: <strong>{{ pop }} / {{ cap }}</strong></small>
+    <small>{{ pct }}%</small>
+  </div>
+  <div class="progress" style="height:8px">
+    <div class="progress-bar kingdom-progress"
+         style="width:{{ pct }}%"></div>
+  </div>
+</div>
+
+<!-- Buildings -->
+<h4>🏗️ Edifici</h4>
+<div class="row g-3 mb-5">
+  {% for bld in village.buildings %}
+  <div class="col-md-4">
+    <div class="card h-100 building-card {% if bld.upgrade_pending %}border-warning{% endif %}">
+      <div class="card-header kingdom-card-header d-flex justify-content-between align-items-center">
+        <span>
+          {% if bld.type == 'house' %}🏠{% elif bld.type == 'field' %}🌾{% else %}⚒️ {% endif %}
+          {{ bld.label }}
+        </span>
+        <span class="badge bg-light text-dark">Lv {{ bld.level }}</span>
+      </div>
+      <div class="card-body">
+        <p class="mb-1">{{ bld.capacity_description }}</p>
+
+        {% if bld.upgrade_pending %}
+          <div class="alert alert-warning py-1 mb-2">
+            <small>⏳ Aggiornamento in corso…</small>
+          </div>
+        {% endif %}
+
+        {% if not bld.at_max_level and not bld.upgrade_pending %}
+          <p class="text-muted mb-2">
+            <small>Costo upgrade → Lv {{ bld.level + 1 }}:
+              <strong>{{ bld.next_level_cost }} ⚒️</strong>
+            </small>
+          </p>
+          <form method="post" action="{{ url_for('village.upgrade', building_id=bld.id) }}">
+            <button type="submit"
+                    class="btn btn-sm kingdom-btn-primary w-100"
+                    {% if village.tools < bld.next_level_cost %}disabled{% endif %}>
+              <i class="bi bi-arrow-up-circle-fill"></i> Migliora
+            </button>
+          </form>
+        {% elif bld.at_max_level %}
+          <span class="badge bg-success w-100">Livello Massimo</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Recent logs -->
+{% if logs %}
+<h4>📜 Cronaca recente</h4>
+<div class="accordion" id="logAccordion">
+  {% for entry in logs %}
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button {% if not loop.first %}collapsed{% endif %}"
+              type="button" data-bs-toggle="collapse"
+              data-bs-target="#log{{ entry.id }}">
+        <strong>{{ entry.date_string }}</strong>
+        <span class="ms-3 text-muted small">
+          🌾+{{ entry.food_produced }}
+          ⚒️+{{ entry.tools_produced }}
+          {% if entry.deaths > 0 %} 💀{{ entry.deaths }}{% endif %}
+          {% if entry.new_arrivals > 0 %} 👶{{ entry.new_arrivals }}{% endif %}
+        </span>
+      </button>
+    </h2>
+    <div id="log{{ entry.id }}"
+         class="accordion-collapse collapse {% if loop.first %}show{% endif %}"
+         data-bs-parent="#logAccordion">
+      <div class="accordion-body small" style="white-space:pre-line">
+        {{ entry.log_text or 'Nessun evento notevole.' }}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

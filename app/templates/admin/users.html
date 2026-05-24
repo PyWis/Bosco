@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Utenti – Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h2>👥 Gestione Utenti</h2>
+  <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+    ← Dashboard
+  </a>
+</div>
+
+<div class="table-responsive">
+<table class="table table-hover align-middle">
+  <thead class="table-dark">
+    <tr>
+      <th>#</th>
+      <th>Username</th>
+      <th>Email</th>
+      <th>Regno</th>
+      <th>Villaggio</th>
+      <th>Ruolo</th>
+      <th>Azioni</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.id }}</td>
+      <td>
+        <strong>{{ u.username }}</strong>
+        {% if u.id == current_user.id %}
+          <span class="badge bg-secondary ms-1">tu</span>
+        {% endif %}
+      </td>
+      <td>{{ u.email }}</td>
+      <td>
+        {% if u.kingdom %}
+          <span class="badge"
+                style="background:{{ {'Kenn':'#ffc107','Drassi':'#0d6efd','Whasi':'#dc3545'}[u.kingdom] }}">
+            {{ u.kingdom }}
+          </span>
+        {% else %}—{% endif %}
+      </td>
+      <td>
+        {% if u.village %}
+          {{ u.village.name }}
+          <small class="text-muted">({{ u.village.kingdom_name }})</small>
+        {% else %}—{% endif %}
+      </td>
+      <td>
+        {% if u.is_superadmin %}
+          <span class="badge bg-warning text-dark">SuperAdmin</span>
+        {% else %}
+          <span class="badge bg-secondary">Giocatore</span>
+        {% endif %}
+      </td>
+      <td>
+        <!-- Change Kingdom -->
+        <form method="post" action="{{ url_for('admin.change_kingdom', user_id=u.id) }}"
+              class="d-inline-flex gap-1">
+          <select name="kingdom" class="form-select form-select-sm" style="width:auto">
+            {% for k in ['Kenn','Drassi','Whasi'] %}
+            <option value="{{ k }}" {% if u.kingdom == k %}selected{% endif %}>{{ k }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-globe"></i>
+          </button>
+        </form>
+
+        <!-- Toggle admin -->
+        {% if u.id != current_user.id %}
+        <form method="post" action="{{ url_for('admin.toggle_admin', user_id=u.id) }}"
+              class="d-inline">
+          <button type="submit"
+                  class="btn btn-sm {% if u.is_superadmin %}btn-outline-warning{% else %}btn-outline-secondary{% endif %}"
+                  title="{{ 'Revoca admin' if u.is_superadmin else 'Promuovi admin' }}">
+            <i class="bi bi-shield{% if u.is_superadmin %}-fill{% endif %}"></i>
+          </button>
+        </form>
+
+        <!-- Delete -->
+        <form method="post" action="{{ url_for('admin.delete_user', user_id=u.id) }}"
+              class="d-inline"
+              onsubmit="return confirm('Eliminare {{ u.username }}?')">
+          <button type="submit" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-trash-fill"></i>
+          </button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

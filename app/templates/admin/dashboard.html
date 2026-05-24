@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Admin – Bosco delle Kjxii{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">🛡️ Pannello SuperAdmin</h2>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-3">
+    <div class="card text-center border-warning">
+      <div class="card-body">
+        <div class="display-4">{{ users|length }}</div>
+        <div class="text-muted">Utenti registrati</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center border-info">
+      <div class="card-body">
+        <div class="display-4">{{ gs.turn_number }}</div>
+        <div class="text-muted">Turno corrente</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center border-success">
+      <div class="card-body">
+        <div class="display-4 fs-4">{{ gs.date_string }}</div>
+        <div class="text-muted">Data di gioco</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center border-primary">
+      <div class="card-body">
+        <div class="display-4">{{ users|selectattr('setup_complete')|list|length }}</div>
+        <div class="text-muted">Villaggi attivi</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<a href="{{ url_for('admin.users') }}" class="btn kingdom-btn-primary">
+  <i class="bi bi-people-fill"></i> Gestisci Utenti
+</a>
+{% endblock %}

@@ -1,0 +1,154 @@
+/* =========================================================
+   Bosco delle Kjxii – Main Stylesheet
+   Kingdom themes: Kenn (yellow), Drassi (blue), Whasi (red)
+   ========================================================= */
+
+/* ---- Root variables per kingdom ---- */
+:root {
+  --k-primary:   #d4a017;
+  --k-light:     #fff8e1;
+  --k-dark:      #7a5c00;
+  --k-nav-bg:    #4a3800;
+  --k-nav-text:  #ffe082;
+  --k-btn-bg:    #d4a017;
+  --k-btn-text:  #1a1a1a;
+  --k-badge-bg:  #d4a017;
+  --k-progress:  #d4a017;
+  --k-card-head: #4a3800;
+  --k-card-text: #ffe082;
+  --k-footer-bg: #3a2c00;
+}
+
+/* ---- Kingdom: Drassi (blue) ---- */
+[data-kingdom="drassi"] {
+  --k-primary:   #1565c0;
+  --k-light:     #e3f2fd;
+  --k-dark:      #0a3d62;
+  --k-nav-bg:    #0d3b6e;
+  --k-nav-text:  #90caf9;
+  --k-btn-bg:    #1565c0;
+  --k-btn-text:  #ffffff;
+  --k-badge-bg:  #1565c0;
+  --k-progress:  #1565c0;
+  --k-card-head: #0d3b6e;
+  --k-card-text: #90caf9;
+  --k-footer-bg: #082d54;
+}
+
+/* ---- Kingdom: Whasi (red) ---- */
+[data-kingdom="whasi"] {
+  --k-primary:   #c62828;
+  --k-light:     #ffebee;
+  --k-dark:      #7f0000;
+  --k-nav-bg:    #6e1010;
+  --k-nav-text:  #ef9a9a;
+  --k-btn-bg:    #c62828;
+  --k-btn-text:  #ffffff;
+  --k-badge-bg:  #c62828;
+  --k-progress:  #c62828;
+  --k-card-head: #6e1010;
+  --k-card-text: #ef9a9a;
+  --k-footer-bg: #540000;
+}
+
+/* ---- Base ---- */
+body {
+  background-color: var(--k-light);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main.container {
+  flex: 1;
+}
+
+/* ---- Navbar ---- */
+.kingdom-navbar {
+  background-color: var(--k-nav-bg) !important;
+}
+.kingdom-navbar .navbar-brand,
+.kingdom-navbar .nav-link,
+.kingdom-navbar .navbar-toggler-icon {
+  color: var(--k-nav-text) !important;
+}
+.kingdom-navbar .nav-link:hover {
+  color: #fff !important;
+}
+
+/* ---- Badge / clock ---- */
+.kingdom-badge {
+  background-color: var(--k-badge-bg);
+  color: var(--k-btn-text);
+}
+.kingdom-mini-badge {
+  background-color: var(--k-badge-bg);
+  color: var(--k-btn-text);
+}
+
+/* ---- Buttons ---- */
+.kingdom-btn-primary {
+  background-color: var(--k-btn-bg);
+  color: var(--k-btn-text);
+  border: none;
+}
+.kingdom-btn-primary:hover {
+  filter: brightness(1.15);
+  color: var(--k-btn-text);
+}
+.kingdom-btn-primary:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+/* ---- Cards ---- */
+.kingdom-card-header {
+  background-color: var(--k-card-head);
+  color: var(--k-card-text);
+}
+
+/* ---- Progress bars ---- */
+.kingdom-progress {
+  background-color: var(--k-progress);
+}
+
+/* ---- Footer ---- */
+.kingdom-footer {
+  background-color: var(--k-footer-bg);
+  color: var(--k-nav-text);
+  margin-top: auto;
+}
+
+/* ---- Fantasy title ---- */
+.fantasy-title {
+  color: var(--k-dark);
+  text-shadow: 2px 2px 4px rgba(0,0,0,.15);
+  letter-spacing: .03em;
+}
+
+/* ---- Building cards ---- */
+.building-card {
+  transition: box-shadow .2s;
+}
+.building-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,.15);
+}
+
+/* ---- Inhabitants table slot colors ---- */
+select.slot-idle     { border-left: 4px solid #adb5bd; }
+select.slot-field    { border-left: 4px solid #28a745; background: #f6fff8; }
+select.slot-workshop { border-left: 4px solid #ffc107; background: #fffdf0; }
+select.slot-training { border-left: 4px solid #007bff; background: #f0f7ff; }
+
+/* ---- Scrollable table ---- */
+.inhabitants-table th,
+.inhabitants-table td {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* ---- Responsive tweaks ---- */
+@media (max-width: 768px) {
+  .fantasy-title { font-size: 2rem; }
+}
