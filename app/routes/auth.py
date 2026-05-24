@@ -66,17 +66,19 @@ def setup():
     if current_user.setup_complete and not current_user.is_superadmin:
         return redirect(url_for('village.overview'))
     if request.method == 'POST':
-        village_name  = request.form.get('village_name', '').strip()
-        kingdom_name  = request.form.get('kingdom_name', '').strip()
-        kingdom       = request.form.get('kingdom', '')
+        village_name = request.form.get('village_name', '').strip()
+        kingdom      = request.form.get('kingdom', '')
 
-        if not village_name or not kingdom_name:
-            flash('Inserisci il nome del villaggio e del regno.', 'warning')
+        # Il nome del regno è l'alleanza scelta
+        kingdom_name = kingdom
+
+        if not village_name:
+            flash('Inserisci il nome del villaggio.', 'warning')
         elif kingdom not in KINGDOMS:
             flash('Scegli un regno valido.', 'warning')
         else:
-            current_user.kingdom       = kingdom
-            current_user.setup_complete= True
+            current_user.kingdom        = kingdom
+            current_user.setup_complete = True
             db.session.commit()
 
             # Create village only if player doesn't have one yet

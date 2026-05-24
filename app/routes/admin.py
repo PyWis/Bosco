@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from app.models import db, User, GameState, KINGDOMS
+from app.models import db, User, Village, GameState, KINGDOMS
 from functools import wraps
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -20,9 +20,11 @@ def superadmin_required(f):
 @admin_bp.route('/')
 @superadmin_required
 def dashboard():
+    from flask import current_app
     users    = User.query.order_by(User.created_at).all()
     gs       = GameState.query.first()
-    return render_template('admin/dashboard.html', users=users, gs=gs)
+    return render_template('admin/dashboard.html', users=users, gs=gs,
+                           config=current_app.config)
 
 
 @admin_bp.route('/users')
@@ -58,6 +60,33 @@ def delete_user(user_id):
     db.session.commit()
     flash(f'Utente {user.username} eliminato.', 'success')
     return redirect(url_for('admin.users'))
+
+
+@admin_bp.route('/advance_turn', methods=['POST'])
+@superadmin_required
+def advance_turn():
+    """Avanza manualmente il gioco di 1 turno."""
+    from app.services.turn_processor import process_village_turn
+    gs = GameState.query.first()
+    if not gs:
+        flash('Stato di gioco non trovato.', 'danger')
+        return redirect(url_for('admin.dashboard'))
+
+    villages = Village.query.all()
+    processed = 0
+    for village in villages:
+        process_village_turn(village, gs)
+        processed += 1
+
+    gs.advance()
+    db.session.commit()
+
+    flash(
+        f'Turno avanzato manualmente! Ora siamo a: {gs.date_string} '
+        f'(turno {gs.turn_number}) — {processed} villaggi elaborati.',
+        'success'
+    )
+    return redirect(url_for('admin.dashboard'))
 
 
 @admin_bp.route('/users/<int:user_id>/toggle_admin', methods=['POST'])
