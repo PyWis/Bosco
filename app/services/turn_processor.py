@@ -90,9 +90,10 @@ def process_village_turn(village: Village, gs: GameState) -> TurnLog:
 
     # ------------------------------------------------------------------
     # 3. Training & level-ups
+    #    Gli U18 possono allenarsi ma non lavorare nei campi/officina.
     # ------------------------------------------------------------------
     for inh in alive:
-        if not inh.can_work or not inh.can_train:
+        if not inh.can_train:   # esclude classe M e morti
             continue
         train_count = inh.train_slots
         if train_count == 0:

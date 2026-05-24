@@ -69,11 +69,14 @@
     </thead>
     <tbody>
       {% for inh in inhabitants %}
-      <tr class="{% if not inh.can_work %}table-secondary{% endif %}">
+      <tr class="{% if not inh.can_use_slots %}table-secondary{% endif %}">
         <td>
           <strong>{{ inh.full_name }}</strong>
           {% if not inh.can_work %}
-            <span class="badge bg-info text-dark ms-1">U{{ inh.age }}a</span>
+            <span class="badge bg-info text-dark ms-1"
+                  title="Può allenarsi ma non lavorare fino ai 18 anni">
+              U18 ({{ inh.age }}a)
+            </span>
           {% endif %}
         </td>
         <td>{{ '♂' if inh.gender == 'M' else '♀' }}</td>
@@ -99,7 +102,7 @@
             {{ inh.food_cost }}
           </span>
         </td>
-        {% if inh.can_work %}
+        {% if inh.can_use_slots %}
           {% for s in range(1, 5) %}
           <td>
             {% set cur = inh.slots[s-1] %}
@@ -107,8 +110,10 @@
                     class="form-select form-select-sm slot-select slot-{{ cur }}"
                     onchange="this.className='form-select form-select-sm slot-select slot-'+this.value">
               <option value="idle"     {% if cur=='idle'     %}selected{% endif %}>⬜ Inattivo</option>
+              {% if inh.can_work %}
               <option value="field"    {% if cur=='field'    %}selected{% endif %}>🌾 Campo</option>
-              {% if inh.can_use_workshop %}
+              {% endif %}
+              {% if inh.can_work and inh.can_use_workshop %}
               <option value="workshop" {% if cur=='workshop' %}selected{% endif %}>⚒️  Officina</option>
               {% endif %}
               {% if inh.can_train %}

@@ -273,8 +273,13 @@ class Inhabitant(db.Model):
         return f"{self.level_type}{self.level_num}"
 
     @property
+    def can_use_slots(self):
+        """Can be assigned to any slot (training or work) — age >= 14."""
+        return self.age >= 14 and self.is_alive
+
+    @property
     def can_work(self):
-        """Can be assigned to production/training slots (age >= 18)."""
+        """Can be assigned to production slots (Campo / Officina) — age >= 18."""
         return self.age >= 18 and self.is_alive
 
     @property
@@ -286,7 +291,7 @@ class Inhabitant(db.Model):
 
     @property
     def can_train(self):
-        """J class can train; M class cannot."""
+        """J class can train regardless of age (even U18); M class cannot."""
         return self.level_type == 'J' and self.is_alive
 
     @property

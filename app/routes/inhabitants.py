@@ -29,8 +29,8 @@ def assign(inh_id):
         flash('Abitante non appartenente al tuo villaggio.', 'danger')
         return redirect(url_for('inhabitants.overview'))
 
-    if not inh.can_work:
-        flash(f'{inh.full_name} non può ancora lavorare (età < 18).', 'warning')
+    if not inh.can_use_slots:
+        flash(f'{inh.full_name} è troppo giovane (età < 14).', 'warning')
         return redirect(url_for('inhabitants.overview'))
 
     slots_data = []
@@ -40,8 +40,14 @@ def assign(inh_id):
             val = 'idle'
         slots_data.append(val)
 
-    # Validate: workshop only for J11+ / M class
-    for i, val in enumerate(slots_data):
+    # Validazioni per slot
+    for val in slots_data:
+        if val in ('field', 'workshop') and not inh.can_work:
+            flash(
+                f'{inh.full_name} ha meno di 18 anni: può solo allenarsi, non lavorare.',
+                'warning'
+            )
+            return redirect(url_for('inhabitants.overview'))
         if val == 'workshop' and not inh.can_use_workshop:
             flash(
                 f'{inh.full_name} deve essere almeno J11 per lavorare in Officina.',
@@ -55,15 +61,14 @@ def assign(inh_id):
             )
             return redirect(url_for('inhabitants.overview'))
 
-    # Check field capacity
-    field_slots_this = sum(1 for v in slots_data if v == 'field')
+    # Controllo capacità Campo / Officina
+    field_slots_this    = sum(1 for v in slots_data if v == 'field')
     workshop_slots_this = sum(1 for v in slots_data if v == 'workshop')
 
-    # Count other inhabitants' slots (excluding this one)
-    other_alive = [i for i in village.alive_inhabitants
-                   if i.id != inh_id and i.can_work]
-    total_field    = sum(i.food_slots    for i in other_alive) + field_slots_this
-    total_workshop = sum(i.tool_slots    for i in other_alive) + workshop_slots_this
+    other_alive    = [i for i in village.alive_inhabitants
+                      if i.id != inh_id and i.can_work]
+    total_field    = sum(i.food_slots for i in other_alive) + field_slots_this
+    total_workshop = sum(i.tool_slots for i in other_alive) + workshop_slots_this
 
     if total_field > village.max_field_workers:
         flash(
@@ -80,26 +85,28 @@ def assign(inh_id):
 
     inh.slot1, inh.slot2, inh.slot3, inh.slot4 = slots_data
     db.session.commit()
-    flash(f'Turno lavorativo di {inh.full_name} aggiornato.', 'success')
+    flash(f'Turno di {inh.full_name} aggiornato.', 'success')
     return redirect(url_for('inhabitants.overview'))
 
 
 @inhabitants_bp.route('/assign_all', methods=['POST'])
 @login_required
 def assign_all():
-    """Bulk assignment: set all slots for every inhabitant at once."""
+    """Bulk assignment per tutti gli abitanti."""
     village = current_user.village
     alive   = village.alive_inhabitants
 
     for inh in alive:
-        if not inh.can_work:
+        if not inh.can_use_slots:
             continue
         for idx in range(1, 5):
             key = f'inh_{inh.id}_slot{idx}'
             val = request.form.get(key, 'idle').strip()
             if val not in VALID_SLOTS:
                 val = 'idle'
-            # Basic validation
+            # Sanity checks lato server
+            if val in ('field', 'workshop') and not inh.can_work:
+                val = 'idle'
             if val == 'workshop' and not inh.can_use_workshop:
                 val = 'idle'
             if val == 'training' and not inh.can_train:
