@@ -89,6 +89,43 @@ def assign(inh_id):
     return redirect(url_for('inhabitants.overview'))
 
 
+@inhabitants_bp.route('/expel/<int:inh_id>', methods=['POST'])
+@login_required
+def expel(inh_id):
+    """Espelle un abitante dal villaggio. Costa 3 turni del suo fabbisogno di cibo."""
+    village = current_user.village
+    inh     = Inhabitant.query.get_or_404(inh_id)
+
+    if inh.village_id != village.id:
+        flash('Abitante non appartenente al tuo villaggio.', 'danger')
+        return redirect(url_for('inhabitants.overview'))
+
+    if not inh.is_alive:
+        flash('Questo abitante non è più nel villaggio.', 'warning')
+        return redirect(url_for('inhabitants.overview'))
+
+    cost = inh.food_cost * 3
+    if village.food < cost:
+        flash(
+            f'Cibo insufficiente per espellere {inh.full_name}. '
+            f'Servono {cost} cibi (3 turni × {inh.food_cost}), ne hai {village.food}.',
+            'danger'
+        )
+        return redirect(url_for('inhabitants.overview'))
+
+    village.food -= cost
+    inh.is_alive  = False
+    inh.slot1 = inh.slot2 = inh.slot3 = inh.slot4 = 'idle'
+    db.session.commit()
+
+    flash(
+        f'{inh.full_name} è stato espulso dal villaggio '
+        f'(costo: {cost} cibi).',
+        'warning'
+    )
+    return redirect(url_for('inhabitants.overview'))
+
+
 @inhabitants_bp.route('/assign_all', methods=['POST'])
 @login_required
 def assign_all():
