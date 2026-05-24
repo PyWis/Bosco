@@ -133,9 +133,13 @@ def assign_all():
     village = current_user.village
     alive   = village.alive_inhabitants
 
+    # --- Prima passata: costruisci le assegnazioni proposte in memoria ---
+    proposed = {}   # inh.id -> [slot1, slot2, slot3, slot4]
+
     for inh in alive:
         if not inh.can_use_slots:
             continue
+        slots = []
         for idx in range(1, 5):
             key = f'inh_{inh.id}_slot{idx}'
             val = request.form.get(key, 'idle').strip()
@@ -148,8 +152,37 @@ def assign_all():
                 val = 'idle'
             if val == 'training' and not inh.can_train:
                 val = 'idle'
-            inh.set_slot(idx, val)
+            slots.append(val)
+        proposed[inh.id] = slots
+
+    # --- Controllo capacità: 1 abitante = 1 posto (indipendente dalle ore) ---
+    in_field    = sum(1 for slots in proposed.values() if 'field'    in slots)
+    in_workshop = sum(1 for slots in proposed.values() if 'workshop' in slots)
+
+    errors = []
+    if in_field > village.max_field_workers:
+        errors.append(
+            f'Campi: {in_field} abitanti assegnati ma la capacità è '
+            f'{village.max_field_workers} (Campi lv{village.field.level}).'
+        )
+    if in_workshop > village.max_workshop_workers:
+        errors.append(
+            f'Officina: {in_workshop} abitanti assegnati ma la capacità è '
+            f'{village.max_workshop_workers} (Officina lv{village.workshop.level}).'
+        )
+
+    if errors:
+        for msg in errors:
+            flash(f'⚠️ {msg}', 'danger')
+        flash('Registro non salvato. Riduci gli assegnati e riprova.', 'warning')
+        return redirect(url_for('inhabitants.overview'))
+
+    # --- Seconda passata: applica solo se tutto è valido ---
+    for inh in alive:
+        if inh.id not in proposed:
+            continue
+        inh.slot1, inh.slot2, inh.slot3, inh.slot4 = proposed[inh.id]
 
     db.session.commit()
-    flash('Assegnazioni aggiornate per tutti gli abitanti.', 'success')
+    flash('Registro abitanti salvato.', 'success')
     return redirect(url_for('inhabitants.overview'))
