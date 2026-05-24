@@ -61,3 +61,18 @@ def upgrade(building_id):
         f'Sarà completato nel prossimo turno ({gs.month_name}).', 'success'
     )
     return redirect(url_for('village.overview'))
+
+
+@village_bp.route('/toggle_arrivals', methods=['POST'])
+@login_required
+def toggle_arrivals():
+    village = current_user.village
+    if village is None:
+        return redirect(url_for('auth.setup'))
+    village.block_arrivals = not village.block_arrivals
+    db.session.commit()
+    if village.block_arrivals:
+        flash('🚫 Arrivi bloccati: nessun nuovo abitante verrà generato nei prossimi turni.', 'warning')
+    else:
+        flash('✅ Arrivi riabilitati: nuovi abitanti potranno unirsi al villaggio.', 'success')
+    return redirect(url_for('village.overview'))

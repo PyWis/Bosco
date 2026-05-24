@@ -205,10 +205,12 @@ def process_village_turn(village: Village, gs: GameState) -> TurnLog:
         lines.append("🌾 Le riserve di cibo sono state azzerate dopo la carestia.")
 
     # ------------------------------------------------------------------
-    # 7. New arrival
+    # 7. New arrival (saltato se il villaggio ha bloccato gli arrivi)
     # ------------------------------------------------------------------
     alive_after = village.alive_inhabitants  # re-eval after deaths
-    if len(alive_after) < village.max_inhabitants:
+    if village.block_arrivals:
+        lines.append("🚫 Arrivi bloccati: nessun nuovo abitante questo turno.")
+    elif len(alive_after) < village.max_inhabitants:
         new_inh = _random_inhabitant(village.id)
         db.session.add(new_inh)
         arrivals += 1

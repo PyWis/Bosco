@@ -99,6 +99,7 @@ class Village(db.Model):
     kingdom_name = db.Column(db.String(100))
     food         = db.Column(db.Integer, default=10)
     tools        = db.Column(db.Integer, default=0)
+    block_arrivals = db.Column(db.Boolean, default=False)  # blocca nuovi arrivi
 
     buildings  = db.relationship('Building',   backref='village',
                                  cascade='all, delete-orphan')

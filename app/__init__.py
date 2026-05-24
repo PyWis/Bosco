@@ -155,6 +155,12 @@ def _migrate_villages():
         for col, col_type in new_cols.items():
             if col not in existing:
                 conn.execute(sa.text(f"ALTER TABLE inhabitants ADD COLUMN {col} {col_type}"))
+
+        # Colonne nuove su Village
+        v_existing = {row[1] for row in conn.execute(sa.text("PRAGMA table_info(villages)"))}
+        if 'block_arrivals' not in v_existing:
+            conn.execute(sa.text("ALTER TABLE villages ADD COLUMN block_arrivals BOOLEAN DEFAULT 0"))
+
         conn.commit()
 
     # --- Edifici mancanti nelle ville esistenti ---

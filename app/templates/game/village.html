@@ -13,17 +13,27 @@
   </div>
 </div>
 
-<!-- Population bar -->
+<!-- Population bar + toggle arrivi -->
 <div class="mb-4">
   {% set pop = village.total_inhabitants %}
   {% set cap = village.max_inhabitants %}
   {% set pct = ((pop / cap * 100) | int) if cap > 0 else 0 %}
-  <div class="d-flex justify-content-between">
+  <div class="d-flex justify-content-between align-items-center mb-1">
     <small>👥 Popolazione: <strong>{{ pop }} / {{ cap }}</strong></small>
-    <small>{{ pct }}%</small>
+    <div class="d-flex align-items-center gap-2">
+      <small>{{ pct }}%</small>
+      <form method="post" action="{{ url_for('village.toggle_arrivals') }}">
+        <button type="submit"
+                class="btn btn-sm {% if village.block_arrivals %}btn-warning{% else %}btn-outline-secondary{% endif %} py-0 px-2"
+                style="font-size:0.75rem"
+                title="{% if village.block_arrivals %}Arrivi bloccati – clicca per riabilitare{% else %}Clicca per bloccare nuovi arrivi{% endif %}">
+          {% if village.block_arrivals %}🚫 Arrivi bloccati{% else %}👶 Arrivi attivi{% endif %}
+        </button>
+      </form>
+    </div>
   </div>
   <div class="progress" style="height:8px">
-    <div class="progress-bar kingdom-progress"
+    <div class="progress-bar {% if village.block_arrivals %}bg-warning{% else %}kingdom-progress{% endif %}"
          style="width:{{ pct }}%"></div>
   </div>
 </div>
