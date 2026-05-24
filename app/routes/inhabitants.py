@@ -7,16 +7,40 @@ inhabitants_bp = Blueprint('inhabitants', __name__, url_prefix='/inhabitants')
 VALID_SLOTS = {'idle', 'field', 'workshop', 'training'}
 
 
+SORT_KEYS = {'age', 'level'}
+ORDER_KEYS = {'asc', 'desc'}
+
+
+def _level_sort_key(inh):
+    """Ordine: J < M; poi numero livello; poi tipo (J=0, M=1)."""
+    type_order = 0 if inh.level_type == 'J' else 1
+    return (type_order, inh.level_num)
+
+
 @inhabitants_bp.route('/')
 @login_required
 def overview():
     if not current_user.setup_complete:
         return redirect(url_for('auth.setup'))
+
     gs      = GameState.query.first()
     village = current_user.village
     alive   = village.alive_inhabitants
+
+    sort  = request.args.get('sort',  'age')
+    order = request.args.get('order', 'asc')
+    if sort  not in SORT_KEYS:  sort  = 'age'
+    if order not in ORDER_KEYS: order = 'asc'
+
+    reverse = (order == 'desc')
+    if sort == 'age':
+        alive = sorted(alive, key=lambda i: i.age, reverse=reverse)
+    elif sort == 'level':
+        alive = sorted(alive, key=_level_sort_key, reverse=reverse)
+
     return render_template('game/inhabitants.html',
-                           village=village, gs=gs, inhabitants=alive)
+                           village=village, gs=gs, inhabitants=alive,
+                           sort=sort, order=order)
 
 
 @inhabitants_bp.route('/assign/<int:inh_id>', methods=['POST'])

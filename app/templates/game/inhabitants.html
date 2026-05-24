@@ -62,11 +62,21 @@
 <div class="table-responsive">
   <table class="table table-hover align-middle inhabitants-table">
     <thead class="table-dark">
+      {% macro sort_th(label, key) %}
+        {% set next_order = 'desc' if (sort == key and order == 'asc') else 'asc' %}
+        {% set icon = '▲' if (sort == key and order == 'asc') else ('▼' if (sort == key and order == 'desc') else '⇅') %}
+        <th>
+          <a href="{{ url_for('inhabitants.overview', sort=key, order=next_order) }}"
+             class="text-white text-decoration-none">
+            {{ label }} <small>{{ icon }}</small>
+          </a>
+        </th>
+      {% endmacro %}
       <tr>
         <th>Nome</th>
         <th>Sesso</th>
-        <th>Età</th>
-        <th>Livello</th>
+        {{ sort_th('Età',    'age')   }}
+        {{ sort_th('Livello','level') }}
         <th>EXP / Necessaria</th>
         <th>Cibo/T</th>
         <th>Slot 1</th>
