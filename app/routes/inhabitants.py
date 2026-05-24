@@ -64,11 +64,15 @@ def assign(inh_id):
             val = 'idle'
         slots_data.append(val)
 
+    # Se l'abitante è assegnato al Campo Addes., può lavorare anche da U18
+    has_tg_slot = 'training_ground' in slots_data
+
     # Validazioni per slot
     for val in slots_data:
-        if val in ('field', 'workshop') and not inh.can_work:
+        if val in ('field', 'workshop') and not inh.can_work and not has_tg_slot:
             flash(
-                f'{inh.full_name} ha meno di 18 anni: può solo allenarsi, non lavorare.',
+                f'{inh.full_name} ha meno di 18 anni: può solo allenarsi, non lavorare '
+                f'(eccezione: chi è nel Campo di Addestramento).',
                 'warning'
             )
             return redirect(url_for('inhabitants.overview'))
@@ -169,14 +173,22 @@ def assign_all():
     for inh in alive:
         if not inh.can_use_slots:
             continue
-        slots = []
+        # Raccogliamo i valori grezzi prima delle validazioni
+        raw = []
         for idx in range(1, 5):
             key = f'inh_{inh.id}_slot{idx}'
             val = request.form.get(key, 'idle').strip()
             if val not in VALID_SLOTS:
                 val = 'idle'
-            # Sanity checks lato server
-            if val in ('field', 'workshop') and not inh.can_work:
+            raw.append(val)
+
+        # Eccezione: U18 assegnati al Campo Addes. possono lavorare in campo/officina
+        has_tg = 'training_ground' in raw
+
+        slots = []
+        for val in raw:
+            # U18 bloccati da campo/officina solo se non hanno slot training_ground
+            if val in ('field', 'workshop') and not inh.can_work and not has_tg:
                 val = 'idle'
             if val == 'workshop' and not inh.can_use_workshop:
                 val = 'idle'

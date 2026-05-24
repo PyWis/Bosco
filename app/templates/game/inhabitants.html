@@ -78,7 +78,7 @@
         <th>Sesso</th>
         {{ sort_th('Età',    'age')   }}
         {{ sort_th('Livello','level') }}
-        <th>EXP / Necessaria</th>
+        <th>EXP / Nec. · Campo pts</th>
         <th>Cibo/T</th>
         <th>Slot 1</th>
         <th>Slot 2</th>
@@ -121,13 +121,26 @@
           {% if inh.exp is not none and inh.exp_needed is not none %}
             <small><strong>{{ inh.exp }}</strong><span class="text-muted"> / {{ inh.exp_needed }}</span></small>
           {% elif inh.m_exp is not none and inh.m_exp_needed is not none %}
-            <small><strong>{{ inh.m_exp }}</strong><span class="text-muted"> / {{ inh.m_exp_needed }}</span></small>
+            <small>
+              🎯 <strong>{{ inh.m_exp }}</strong><span class="text-muted"> / {{ inh.m_exp_needed }}</span>
+              {% if inh.m_training_pts %}
+              <br><span class="text-muted">⚔️ {{ inh.m_training_pts }} pt campo</span>
+              {% endif %}
+            </small>
           {% elif inh.level_type == 'GM' %}
-            <small class="text-warning fw-bold">Gran Maestro</small>
+            <small class="text-warning fw-bold">Gran Maestro
+              {% if inh.m_training_pts %}
+              <br><span class="text-muted fw-normal">⚔️ {{ inh.m_training_pts }} pt campo</span>
+              {% endif %}
+            </small>
           {% elif inh.level_type == 'M' and inh.level_num == 0 %}
             <small class="text-danger">⚔️ Scegli spec.</small>
           {% elif inh.level_type == 'M' and inh.level_num >= 20 %}
-            <small class="text-muted">→ GM</small>
+            <small>→ GM
+              {% if inh.m_training_pts %}
+              <br><span class="text-muted">⚔️ {{ inh.m_training_pts }} pt campo</span>
+              {% endif %}
+            </small>
           {% else %}
             <small class="text-muted">Max J</small>
           {% endif %}
@@ -145,16 +158,19 @@
                     class="form-select form-select-sm slot-select slot-{{ cur }}"
                     onchange="this.className='form-select form-select-sm slot-select slot-'+this.value">
               <option value="idle"     {% if cur=='idle'     %}selected{% endif %}>⬜ Inattivo</option>
-              {% if inh.can_work %}
+              {# Campo/Officina: normalmente 18+; eccezione per chi può usare il Campo Addes. (M1+) #}
+              {% if inh.can_work or inh.can_use_training_ground %}
               <option value="field"    {% if cur=='field'    %}selected{% endif %}>🌾 Campo</option>
               {% endif %}
-              {% if inh.can_work and inh.can_use_workshop %}
+              {% if (inh.can_work or inh.can_use_training_ground) and inh.can_use_workshop %}
               <option value="workshop" {% if cur=='workshop' %}selected{% endif %}>⚒️  Officina</option>
               {% endif %}
               {% if inh.can_train %}
+              {# Allena: J (qualsiasi età) e M1+ per aumentare il livello #}
               <option value="training" {% if cur=='training' %}selected{% endif %}>🎯 Allena</option>
               {% endif %}
               {% if inh.can_use_training_ground and village.max_training_ground_spots > 0 %}
+              {# Campo Addes.: M1+ e GM – accumula m_training_pts (contatore separato) #}
               <option value="training_ground" {% if cur=='training_ground' %}selected{% endif %}>⚔️  Campo Addes.</option>
               {% endif %}
             </select>

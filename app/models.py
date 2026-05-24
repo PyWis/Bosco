@@ -343,15 +343,21 @@ class Inhabitant(db.Model):
 
     @property
     def can_use_workshop(self):
-        """J11+ or M class can work in the workshop."""
-        if self.level_type == 'M':
+        """J11+ or M/GM class can work in the workshop."""
+        if self.level_type in ('M', 'GM'):
             return True
         return self.level_num >= 11
 
     @property
     def can_train(self):
-        """J class can train regardless of age (even U18); M class cannot."""
-        return self.level_type == 'J' and self.is_alive
+        """J class (any age) and M1+ can use the 'Allena' slot to gain training_pts."""
+        if not self.is_alive:
+            return False
+        if self.level_type == 'J':
+            return True
+        if self.level_type == 'M' and self.level_num >= 1:
+            return True
+        return False
 
     @property
     def food_cost(self):
@@ -424,9 +430,9 @@ class Inhabitant(db.Model):
 
     @property
     def m_exp(self):
-        """EXP libera sul livello M corrente (non include quella spesa)."""
+        """EXP libera sul livello M corrente (usa training_pts, azzerati alla transizione J→M)."""
         if self.level_type == 'M' and self.level_num >= 1:
-            return max(0, (self.m_training_pts or 0) - m_cumulative_threshold(self.level_num))
+            return max(0, (self.training_pts or 0) - m_cumulative_threshold(self.level_num))
         if self.level_type == 'GM':
             return None
         return None
