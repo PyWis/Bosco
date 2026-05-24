@@ -8,7 +8,8 @@ from datetime import datetime
 
 from app.models import (
     db, GameState, Village, Building, Inhabitant, TurnLog,
-    MONTHS, MALE_NAMES, FEMALE_NAMES, SURNAMES, upgrade_cost
+    MONTHS, MALE_NAMES, FEMALE_NAMES, SURNAMES,
+    m_level_step_cost, m_cumulative_threshold,
 )
 
 log = logging.getLogger(__name__)
@@ -89,41 +90,68 @@ def process_village_turn(village: Village, gs: GameState) -> TurnLog:
         lines.append(f"⚒️  Prodotti {tool_prod} attrezzi dall'Officina.")
 
     # ------------------------------------------------------------------
-    # 3. Training & level-ups
-    #    Gli U18 possono allenarsi ma non lavorare nei campi/officina.
+    # 3a. Training J – slot 'training' (solo classe J)
+    #     Gli U18 possono allenarsi ma non lavorare nei campi/officina.
     # ------------------------------------------------------------------
     for inh in alive:
-        if not inh.can_train:   # esclude classe M e morti
+        if not inh.can_train:   # esclude classe M/GM e morti
             continue
-        train_count = inh.train_slots
-        if train_count == 0:
+        if inh.train_slots == 0:
             continue
 
         pts_this_turn = 0
         for slot_idx in range(1, 5):
-            slot_val = inh.slots[slot_idx - 1]
-            if slot_val == 'training':
+            if inh.slots[slot_idx - 1] == 'training':
                 max_pts = 70 if slot_idx == 4 else 100
                 pts_this_turn += random.randint(1, max_pts)
 
         inh.training_pts += pts_this_turn
 
-        # Level up (max 1 per turn)
+        # Level up J (max 1 per turn)
         if inh.level_type == 'J' and inh.level_num < 21:
             needed = (inh.level_num + 1) * 28
             if inh.training_pts >= needed:
-                inh.level_num    += 1
-                level_ups        += 1
-                lines.append(
-                    f"⭐ {inh.full_name} ha raggiunto il livello J{inh.level_num}!"
-                )
-                # Transition J21 → M0
+                inh.level_num += 1
+                level_ups     += 1
+                lines.append(f"⭐ {inh.full_name} ha raggiunto J{inh.level_num}!")
+                # Transizione J21 → M0
                 if inh.level_num == 21:
                     inh.level_type = 'M'
                     inh.level_num  = 0
                     lines.append(
-                        f"👴 {inh.full_name} ha raggiunto la maturità (M0): +1 cibo consumato."
+                        f"👴 {inh.full_name} ha raggiunto la maturità (M0): "
+                        f"scegli la specializzazione nel Campo di Addestramento."
                     )
+
+    # ------------------------------------------------------------------
+    # 3b. Training M – slot 'training_ground' (M1-M19, ogni slot = 1 pt)
+    # ------------------------------------------------------------------
+    for inh in alive:
+        if not inh.can_use_training_ground:
+            continue
+        tg_slots = sum(1 for s in inh.slots if s == 'training_ground')
+        if tg_slots == 0:
+            continue
+
+        inh.m_training_pts = (inh.m_training_pts or 0) + tg_slots
+
+        # Level up M (max 1 per turn, M1-M19 → fino a M20 poi GM)
+        if inh.level_type == 'M' and 1 <= inh.level_num < 20:
+            threshold = m_cumulative_threshold(inh.level_num + 1)
+            if inh.m_training_pts >= threshold:
+                inh.level_num += 1
+                level_ups     += 1
+                lines.append(
+                    f"🌟 {inh.full_name} ({inh.specialization}) ha raggiunto M{inh.level_num}!"
+                )
+        elif inh.level_type == 'M' and inh.level_num == 20:
+            # M20 → GM
+            inh.level_type = 'GM'
+            inh.level_num  = 0
+            level_ups      += 1
+            lines.append(
+                f"👑 {inh.full_name} ha raggiunto il rango di Gran Maestro (GM)!"
+            )
 
     # ------------------------------------------------------------------
     # 4. Aging – inhabitants born this month age by 1

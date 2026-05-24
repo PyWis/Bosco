@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Campo di Addestramento – {{ village.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h2 class="mb-0">⚔️ Campo di Addestramento</h2>
+  <div>
+    <span class="badge bg-success fs-6 me-2">🌾 {{ village.food }}</span>
+    <span class="badge bg-secondary fs-6">⚒️  {{ village.tools }}</span>
+  </div>
+</div>
+
+{% if tg %}
+<!-- Edificio info -->
+<div class="card mb-4 {% if tg.upgrade_pending %}border-warning{% endif %}">
+  <div class="card-header kingdom-card-header d-flex justify-content-between align-items-center">
+    <span>⚔️ Campo di Addestramento</span>
+    <span class="badge bg-light text-dark">Lv {{ tg.level }}</span>
+  </div>
+  <div class="card-body">
+    <p class="mb-1">
+      Capacità: <strong>{{ village.max_training_ground_spots }} abitanti M</strong>
+      {% set in_tg = m_inhabitants | selectattr('works_in_training_ground') | list | length %}
+      <span class="text-muted">({{ in_tg }} assegnati)</span>
+    </p>
+
+    {% if tg.upgrade_pending %}
+      <div class="alert alert-warning py-1 mb-2">
+        <small>⏳ Aggiornamento in corso…</small>
+      </div>
+    {% elif not tg.at_max_level %}
+      <p class="text-muted mb-2">
+        <small>Costo upgrade → Lv {{ tg.level + 1 }}:
+          <strong>{{ tg.next_level_cost }} ⚒️</strong>
+          (+2 posti M)
+        </small>
+      </p>
+      <form method="post" action="{{ url_for('village.upgrade', building_id=tg.id) }}">
+        <button type="submit"
+                class="btn btn-sm kingdom-btn-primary"
+                {% if village.tools < tg.next_level_cost %}disabled{% endif %}>
+          <i class="bi bi-arrow-up-circle-fill"></i> Migliora
+        </button>
+      </form>
+    {% else %}
+      <span class="badge bg-success">Livello Massimo (60 posti)</span>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Sezione M0 – specializzazione -->
+{% set m0_list = m_inhabitants | selectattr('level_type', 'eq', 'M') | selectattr('level_num', 'eq', 0) | list %}
+{% if m0_list %}
+<h4 class="mt-4">🎭 Scegli Specializzazione (M0)</h4>
+<p class="text-muted small">Gli abitanti M0 devono scegliere una specializzazione prima di allenarsi. Al momento della scelta ricevono statistiche casuali e salgono automaticamente a M1.</p>
+
+<div class="row g-3 mb-4">
+  {% for inh in m0_list %}
+  <div class="col-md-6 col-lg-4">
+    <div class="card border-warning">
+      <div class="card-header bg-warning text-dark fw-bold">
+        {{ inh.full_name }}
+        <span class="badge bg-dark ms-1">{{ '♂' if inh.gender == 'M' else '♀' }}</span>
+        <span class="badge bg-secondary ms-1">età {{ inh.age }}</span>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('training_ground.specialize', inh_id=inh.id) }}">
+          <div class="d-grid gap-2">
+            {% for spec in specializations[inh.gender] %}
+            <button type="submit" name="specialization" value="{{ spec }}"
+                    class="btn btn-outline-dark btn-sm">
+              {% if 'Guerrier' in spec %}⚔️
+              {% elif 'Mag' in spec %}🔮
+              {% else %}✨{% endif %}
+              {{ spec }}
+            </button>
+            {% endfor %}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Sezione M1+ – roster campo -->
+{% set m1_list = m_inhabitants | rejectattr('level_num', 'eq', 0) | list %}
+{% if m1_list %}
+<h4>🗡️ Abitanti M nel Campo</h4>
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>Nome</th>
+        <th>Classe</th>
+        <th>Spec.</th>
+        <th>VIT</th><th>STR</th><th>MAG</th><th>DEX</th><th>Tot.</th>
+        <th>EXP / Nec.</th>
+        <th>Campo</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for inh in m1_list %}
+      <tr class="{% if inh.works_in_training_ground %}table-success{% endif %}">
+        <td><strong>{{ inh.full_name }}</strong></td>
+        <td>
+          <span class="badge {% if inh.level_type == 'GM' %}bg-warning text-dark{% else %}bg-dark{% endif %}">
+            {{ inh.level_label }}
+          </span>
+        </td>
+        <td>{{ inh.specialization or '—' }}</td>
+        <td>{{ inh.stat_vit or '—' }}</td>
+        <td>{{ inh.stat_str or '—' }}</td>
+        <td>{{ inh.stat_mag or '—' }}</td>
+        <td>{{ inh.stat_dex or '—' }}</td>
+        <td>
+          {% if inh.stat_vit is not none %}
+            <strong>{{ (inh.stat_vit or 0) + (inh.stat_str or 0) + (inh.stat_mag or 0) + (inh.stat_dex or 0) }}</strong>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if inh.m_exp is not none and inh.m_exp_needed is not none %}
+            <small><strong>{{ inh.m_exp }}</strong> / {{ inh.m_exp_needed }}</small>
+          {% elif inh.level_type == 'GM' %}
+            <small class="text-warning">Gran Maestro</small>
+          {% elif inh.level_type == 'M' and inh.level_num >= 20 %}
+            <small class="text-muted">Prossimo: GM</small>
+          {% else %}
+            <small class="text-muted">—</small>
+          {% endif %}
+        </td>
+        <td>
+          <span class="badge {% if inh.works_in_training_ground %}bg-success{% else %}bg-secondary{% endif %}">
+            {% if inh.works_in_training_ground %}In allenamento{% else %}Fuori{% endif %}
+          </span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="text-muted small">
+  <i class="bi bi-info-circle"></i>
+  Per inviare o richiamare un abitante dal Campo di Addestramento usa il
+  <a href="{{ url_for('inhabitants.overview') }}">Registro Abitanti</a>
+  (slot "Campo Addes.").
+</p>
+{% elif not m0_list %}
+<div class="alert alert-info mt-3">
+  Nessun abitante di classe M nel villaggio. Gli abitanti diventano M0 raggiungendo J21.
+</div>
+{% endif %}
+
+{% else %}
+<div class="alert alert-warning">Il Campo di Addestramento non è stato ancora costruito.</div>
+{% endif %}
+{% endblock %}

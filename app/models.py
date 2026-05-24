@@ -124,6 +124,15 @@ class Village(db.Model):
         return next((b for b in self.buildings if b.type == 'workshop'), None)
 
     @property
+    def training_ground(self):
+        return next((b for b in self.buildings if b.type == 'training_ground'), None)
+
+    @property
+    def max_training_ground_spots(self):
+        tg = self.training_ground
+        return tg.level * 2 if tg else 0
+
+    @property
     def max_inhabitants(self):
         h = self.house
         return h.level * 10 if h else 0
@@ -165,6 +174,44 @@ def upgrade_cost(current_level: int) -> int:
     return int(10 * (1.5 ** (current_level - 1)))
 
 
+# Base cost multipliers per building type
+BUILDING_BASE_COSTS = {
+    'house':          10,
+    'field':          10,
+    'workshop':       10,
+    'training_ground': 20,
+}
+
+# Specialisation strings keyed by gender
+SPECIALIZATIONS = {
+    'M': ['Guerriero', 'Mago', 'Sacerdote'],
+    'F': ['Guerriera', 'Maga', 'Sacerdotessa'],
+}
+
+def m_level_step_cost(level_num: int) -> int:
+    """Punti m_training_pts necessari per avanzare da M(level_num) a M(level_num+1)."""
+    return int(28 * (1.37 ** (level_num - 1)))
+
+def m_cumulative_threshold(level_num: int) -> int:
+    """Totale m_training_pts cumulativo per trovarsi a M(level_num). M0 e M1 = 0."""
+    if level_num <= 1:
+        return 0
+    return sum(m_level_step_cost(k) for k in range(1, level_num))
+
+def generate_stats(age: int):
+    """Genera VIT, STR, MAG, DEX casuali rispettando i vincoli di età.
+    age >= 18 → somma ≤ 50; age < 18 → somma ≥ 25."""
+    import random
+    for _ in range(10_000):
+        v, s, m, d = (random.randint(0, 20) for _ in range(4))
+        total = v + s + m + d
+        if age >= 18 and total <= 50:
+            return v, s, m, d
+        if age < 18 and total >= 25:
+            return v, s, m, d
+    return 10, 10, 10, 10  # fallback
+
+
 class Building(db.Model):
     __tablename__ = 'buildings'
 
@@ -176,9 +223,10 @@ class Building(db.Model):
     upgrade_at_turn  = db.Column(db.Integer, nullable=True)  # game turn when it completes
 
     LABELS = {
-        'house':    'Case',
-        'field':    'Campi',
-        'workshop': 'Officina',
+        'house':           'Case',
+        'field':           'Campi',
+        'workshop':        'Officina',
+        'training_ground': 'Campo di Addestramento',
     }
 
     @property
@@ -187,7 +235,8 @@ class Building(db.Model):
 
     @property
     def next_level_cost(self):
-        return upgrade_cost(self.level)
+        base = BUILDING_BASE_COSTS.get(self.type, 10)
+        return int(base * (1.5 ** (self.level - 1)))
 
     @property
     def at_max_level(self):
@@ -201,6 +250,8 @@ class Building(db.Model):
             return f"{self.level * 5} lavoratori → {self.level * 5} cibo/slot"
         elif self.type == 'workshop':
             return f"{self.level * 5} lavoratori → {self.level * 5} attrezzi/slot"
+        elif self.type == 'training_ground':
+            return f"{self.level * 2} abitanti M → 1 pt/slot"
         return ''
 
     def __repr__(self):
@@ -256,6 +307,12 @@ class Inhabitant(db.Model):
     level_num   = db.Column(db.Integer, default=0)
     training_pts= db.Column(db.Integer, default=0)
     is_alive    = db.Column(db.Boolean, default=True)
+    specialization  = db.Column(db.String(30))          # Guerriero / Maga / etc.
+    stat_vit        = db.Column(db.Integer)
+    stat_str        = db.Column(db.Integer)
+    stat_mag        = db.Column(db.Integer)
+    stat_dex        = db.Column(db.Integer)
+    m_training_pts  = db.Column(db.Integer, default=0)
 
     # 4 work/train slots per turn (4h each)
     slot1 = db.Column(db.String(12), default='idle')
@@ -270,6 +327,8 @@ class Inhabitant(db.Model):
 
     @property
     def level_label(self):
+        if self.level_type == 'GM':
+            return 'GM'
         return f"{self.level_type}{self.level_num}"
 
     @property
@@ -351,6 +410,33 @@ class Inhabitant(db.Model):
     def works_in_workshop(self):
         """True se l'abitante ha almeno 1 slot assegnato all'Officina (occupa 1 posto)."""
         return any(s == 'workshop' for s in self.slots)
+
+    @property
+    def can_use_training_ground(self):
+        """M1+ o GM possono usare il Campo di Addestramento."""
+        if self.level_type == 'GM':
+            return True
+        return self.level_type == 'M' and self.level_num >= 1
+
+    @property
+    def works_in_training_ground(self):
+        return any(s == 'training_ground' for s in self.slots)
+
+    @property
+    def m_exp(self):
+        """EXP libera sul livello M corrente (non include quella spesa)."""
+        if self.level_type == 'M' and self.level_num >= 1:
+            return max(0, (self.m_training_pts or 0) - m_cumulative_threshold(self.level_num))
+        if self.level_type == 'GM':
+            return None
+        return None
+
+    @property
+    def m_exp_needed(self):
+        """Costo del passo M corrente → successivo."""
+        if self.level_type == 'M' and 1 <= self.level_num < 20:
+            return m_level_step_cost(self.level_num)
+        return None
 
     def set_slot(self, idx, value):
         """idx: 1-4"""

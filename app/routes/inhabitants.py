@@ -4,7 +4,7 @@ from app.models import db, GameState, Inhabitant
 
 inhabitants_bp = Blueprint('inhabitants', __name__, url_prefix='/inhabitants')
 
-VALID_SLOTS = {'idle', 'field', 'workshop', 'training'}
+VALID_SLOTS = {'idle', 'field', 'workshop', 'training', 'training_ground'}
 
 
 SORT_KEYS = {'age', 'level'}
@@ -81,6 +81,12 @@ def assign(inh_id):
         if val == 'training' and not inh.can_train:
             flash(
                 f'{inh.full_name} (livello {inh.level_label}) non può più allenarsi.',
+                'warning'
+            )
+            return redirect(url_for('inhabitants.overview'))
+        if val == 'training_ground' and not inh.can_use_training_ground:
+            flash(
+                f'{inh.full_name} deve essere almeno M1 per usare il Campo di Addestramento.',
                 'warning'
             )
             return redirect(url_for('inhabitants.overview'))
@@ -176,12 +182,15 @@ def assign_all():
                 val = 'idle'
             if val == 'training' and not inh.can_train:
                 val = 'idle'
+            if val == 'training_ground' and not inh.can_use_training_ground:
+                val = 'idle'
             slots.append(val)
         proposed[inh.id] = slots
 
     # --- Controllo capacità: 1 abitante = 1 posto (indipendente dalle ore) ---
-    in_field    = sum(1 for slots in proposed.values() if 'field'    in slots)
-    in_workshop = sum(1 for slots in proposed.values() if 'workshop' in slots)
+    in_field           = sum(1 for slots in proposed.values() if 'field'            in slots)
+    in_workshop        = sum(1 for slots in proposed.values() if 'workshop'         in slots)
+    in_training_ground = sum(1 for slots in proposed.values() if 'training_ground'  in slots)
 
     errors = []
     if in_field > village.max_field_workers:
@@ -193,6 +202,13 @@ def assign_all():
         errors.append(
             f'Officina: {in_workshop} abitanti assegnati ma la capacità è '
             f'{village.max_workshop_workers} (Officina lv{village.workshop.level}).'
+        )
+    if in_training_ground > village.max_training_ground_spots:
+        tg = village.training_ground
+        errors.append(
+            f'Campo di Addestramento: {in_training_ground} abitanti assegnati ma la capacità è '
+            f'{village.max_training_ground_spots} '
+            f'(Campo lv{tg.level if tg else 0}).'
         )
 
     if errors:

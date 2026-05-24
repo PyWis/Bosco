@@ -54,7 +54,8 @@
   <span class="badge bg-secondary">⬜ Inattivo</span>
   <span class="badge bg-success">🌾 Campo</span>
   <span class="badge bg-warning text-dark">⚒️  Officina</span>
-  <span class="badge bg-primary">🎯 Allenamento</span>
+  <span class="badge bg-primary">🎯 Allenamento (J)</span>
+  <span class="badge bg-danger">⚔️  Campo Addes. (M1+)</span>
 </div>
 
 <!-- Bulk save form -->
@@ -101,18 +102,32 @@
         <td>{{ '♂' if inh.gender == 'M' else '♀' }}</td>
         <td>{{ inh.age }}</td>
         <td>
-          <span class="badge {% if inh.level_type == 'M' %}bg-dark{% else %}bg-primary{% endif %}">
+          <span class="badge
+            {% if inh.level_type == 'GM' %}bg-warning text-dark
+            {% elif inh.level_type == 'M' %}bg-dark
+            {% else %}bg-primary{% endif %}">
             {{ inh.level_label }}
+            {% if inh.specialization %} · {{ inh.specialization }}{% endif %}
           </span>
+          {% if inh.level_type == 'M' and inh.level_num == 0 %}
+          <a href="{{ url_for('training_ground.overview') }}"
+             class="badge bg-danger text-decoration-none ms-1"
+             title="Vai al Campo di Addestramento per scegliere la specializzazione">
+            ⚔️ Specializza!
+          </a>
+          {% endif %}
         </td>
         <td>
           {% if inh.exp is not none and inh.exp_needed is not none %}
-            <small>
-              <strong>{{ inh.exp }}</strong>
-              <span class="text-muted">/ {{ inh.exp_needed }}</span>
-            </small>
-          {% elif inh.level_type == 'M' %}
-            <small class="text-muted">Veterano</small>
+            <small><strong>{{ inh.exp }}</strong><span class="text-muted"> / {{ inh.exp_needed }}</span></small>
+          {% elif inh.m_exp is not none and inh.m_exp_needed is not none %}
+            <small><strong>{{ inh.m_exp }}</strong><span class="text-muted"> / {{ inh.m_exp_needed }}</span></small>
+          {% elif inh.level_type == 'GM' %}
+            <small class="text-warning fw-bold">Gran Maestro</small>
+          {% elif inh.level_type == 'M' and inh.level_num == 0 %}
+            <small class="text-danger">⚔️ Scegli spec.</small>
+          {% elif inh.level_type == 'M' and inh.level_num >= 20 %}
+            <small class="text-muted">→ GM</small>
           {% else %}
             <small class="text-muted">Max J</small>
           {% endif %}
@@ -138,6 +153,9 @@
               {% endif %}
               {% if inh.can_train %}
               <option value="training" {% if cur=='training' %}selected{% endif %}>🎯 Allena</option>
+              {% endif %}
+              {% if inh.can_use_training_ground and village.max_training_ground_spots > 0 %}
+              <option value="training_ground" {% if cur=='training_ground' %}selected{% endif %}>⚔️  Campo Addes.</option>
               {% endif %}
             </select>
           </td>

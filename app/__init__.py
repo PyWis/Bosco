@@ -25,15 +25,17 @@ def create_app(config_class=Config):
     login_manager.login_message_category = 'warning'
 
     # Blueprints
-    from app.routes.auth       import auth_bp
-    from app.routes.village    import village_bp
-    from app.routes.inhabitants import inhabitants_bp
-    from app.routes.admin      import admin_bp
-    from app.routes.api        import api_bp
+    from app.routes.auth            import auth_bp
+    from app.routes.village         import village_bp
+    from app.routes.inhabitants     import inhabitants_bp
+    from app.routes.training_ground import training_ground_bp
+    from app.routes.admin           import admin_bp
+    from app.routes.api             import api_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(village_bp)
     app.register_blueprint(inhabitants_bp)
+    app.register_blueprint(training_ground_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(api_bp)
 
@@ -42,6 +44,7 @@ def create_app(config_class=Config):
         db.create_all()
         _seed_superadmin(app)
         _seed_game_state()
+        _migrate_villages()   # aggiunge edifici mancanti alle ville esistenti
 
     # Scheduler
     from app.services.turn_processor import run_turn
@@ -109,7 +112,7 @@ def _create_starting_village(user: User, village_name: str, kingdom_name: str):
     db.session.flush()  # get village.id
 
     # Starting buildings (level 1)
-    for btype in ('house', 'field', 'workshop'):
+    for btype in ('house', 'field', 'workshop', 'training_ground'):
         db.session.add(Building(village_id=village.id, type=btype, level=1))
 
     # Starting inhabitants (5, age 18, 50/50 gender)
@@ -133,3 +136,31 @@ def _create_starting_village(user: User, village_name: str, kingdom_name: str):
 
     db.session.commit()
     return village
+
+
+def _migrate_villages():
+    """Aggiunge edifici e colonne mancanti alle ville già esistenti."""
+    # --- Colonne nuove su Inhabitant (ALTER TABLE per SQLite) ---
+    new_cols = {
+        'specialization':  'VARCHAR(30)',
+        'stat_vit':        'INTEGER',
+        'stat_str':        'INTEGER',
+        'stat_mag':        'INTEGER',
+        'stat_dex':        'INTEGER',
+        'm_training_pts':  'INTEGER DEFAULT 0',
+    }
+    with db.engine.connect() as conn:
+        import sqlalchemy as sa
+        existing = {row[1] for row in conn.execute(sa.text("PRAGMA table_info(inhabitants)"))}
+        for col, col_type in new_cols.items():
+            if col not in existing:
+                conn.execute(sa.text(f"ALTER TABLE inhabitants ADD COLUMN {col} {col_type}"))
+        conn.commit()
+
+    # --- Edifici mancanti nelle ville esistenti ---
+    for village in Village.query.all():
+        existing_types = {b.type for b in village.buildings}
+        for btype in ('house', 'field', 'workshop', 'training_ground'):
+            if btype not in existing_types:
+                db.session.add(Building(village_id=village.id, type=btype, level=1))
+    db.session.commit()
