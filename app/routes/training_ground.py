@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from app.models import db, GameState, Inhabitant, SPECIALIZATIONS, generate_stats, stat_upgrade_cost
+from app.models import db, GameState, Inhabitant, SPECIALIZATIONS, generate_stats, STAT_MAX
 
 UPGRADABLE_STATS = {'vit', 'str', 'mag', 'dex'}
 
@@ -96,29 +96,30 @@ def upgrade_stat(inh_id):
         flash('Statistica non valida.', 'danger')
         return redirect(url_for('training_ground.overview'))
 
-    # Leggi il valore attuale della stat
-    stat_attr  = f'stat_{stat}'
-    cur_val    = getattr(inh, stat_attr) or 0
-    cost       = stat_upgrade_cost(cur_val)
-    avail_pts  = inh.m_training_pts or 0
+    stat_attr = f'stat_{stat}'
+    cur_val   = getattr(inh, stat_attr) or 0
+    avail_pts = inh.m_training_pts or 0
 
-    if avail_pts < cost:
+    if cur_val >= STAT_MAX:
+        flash(f'{inh.full_name}: {stat.upper()} ha già raggiunto il massimo ({STAT_MAX}).', 'warning')
+        return redirect(url_for('training_ground.overview'))
+
+    if avail_pts < 1:
         flash(
             f'Punti insufficienti per potenziare {stat.upper()} di {inh.full_name}. '
-            f'Servono {cost} pt (disponibili: {avail_pts}).',
+            f'Servono 1 pt (disponibili: {avail_pts}).',
             'danger'
         )
         return redirect(url_for('training_ground.overview'))
 
-    # Applica l'upgrade
     setattr(inh, stat_attr, cur_val + 1)
-    inh.m_training_pts = avail_pts - cost
+    inh.m_training_pts = avail_pts - 1
     db.session.commit()
 
     stat_labels = {'vit': 'VIT', 'str': 'STR', 'mag': 'MAG', 'dex': 'DEX'}
     flash(
         f'⬆️ {inh.full_name}: {stat_labels[stat]} {cur_val} → {cur_val + 1} '
-        f'(costo: {cost} pt, rimanenti: {inh.m_training_pts})',
+        f'(rimanenti: {inh.m_training_pts} pt)',
         'success'
     )
     return redirect(url_for('training_ground.overview'))

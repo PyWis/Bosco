@@ -94,7 +94,7 @@
   <i class="bi bi-info-circle"></i>
   I <strong>⚔️ Pt Campo</strong> si accumulano assegnando slot «Campo Addes.» nel Registro Abitanti.
   Spendili qui per aumentare le statistiche del personaggio.
-  Costo: <em>floor(stat/5)+1</em> pt per +1.
+  Costo: <strong>1 pt per +1</strong> a qualsiasi statistica (max 100).
 </p>
 
 <div class="table-responsive">
@@ -114,12 +114,7 @@
     </thead>
     <tbody>
       {% for inh in m1_list %}
-      {# Pre-calcola costi per non duplicare la formula nel template #}
-      {% set c_vit = ((inh.stat_vit or 0) // 5 + 1) %}
-      {% set c_str = ((inh.stat_str or 0) // 5 + 1) %}
-      {% set c_mag = ((inh.stat_mag or 0) // 5 + 1) %}
-      {% set c_dex = ((inh.stat_dex or 0) // 5 + 1) %}
-      {% set pts   = (inh.m_training_pts or 0) %}
+      {% set pts = (inh.m_training_pts or 0) %}
       <tr class="{% if inh.works_in_training_ground %}table-success{% endif %}">
 
         {# Nome + livello + spec #}
@@ -153,27 +148,30 @@
           </span>
         </td>
 
-        {# Macro helper per ogni stat #}
-        {% macro stat_cell(stat_name, cur, cost, color) %}
+        {# Macro helper per ogni stat – costo fisso 1 pt, max 100 #}
+        {% macro stat_cell(stat_name, cur, color) %}
+        {% set at_max = (cur >= 100) %}
         <td class="text-center">
-          <div class="fw-bold mb-1">{{ cur }}</div>
+          <div class="fw-bold mb-1">
+            {{ cur }}{% if at_max %} <small class="text-warning">★</small>{% endif %}
+          </div>
           <form method="post" action="{{ url_for('training_ground.upgrade_stat', inh_id=inh.id) }}">
             <input type="hidden" name="stat" value="{{ stat_name }}">
             <button type="submit"
                     class="btn btn-outline-{{ color }} py-0 px-1"
                     style="font-size:0.7rem;line-height:1.4"
-                    title="{{ cost }} pt per +1 {{ stat_name|upper }}"
-                    {% if pts < cost %}disabled{% endif %}>
-              +1&thinsp;<span class="text-muted">({{ cost }}⚔️)</span>
+                    title="+1 {{ stat_name|upper }} (1 pt)"
+                    {% if pts < 1 or at_max %}disabled{% endif %}>
+              +1
             </button>
           </form>
         </td>
         {% endmacro %}
 
-        {{ stat_cell('vit', inh.stat_vit or 0, c_vit, 'danger')  }}
-        {{ stat_cell('str', inh.stat_str or 0, c_str, 'warning') }}
-        {{ stat_cell('mag', inh.stat_mag or 0, c_mag, 'primary') }}
-        {{ stat_cell('dex', inh.stat_dex or 0, c_dex, 'success') }}
+        {{ stat_cell('vit', inh.stat_vit or 0, 'danger')  }}
+        {{ stat_cell('str', inh.stat_str or 0, 'warning') }}
+        {{ stat_cell('mag', inh.stat_mag or 0, 'primary') }}
+        {{ stat_cell('dex', inh.stat_dex or 0, 'success') }}
 
         {# Totale #}
         <td class="text-center fw-bold">
