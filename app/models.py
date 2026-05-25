@@ -134,11 +134,15 @@ class Village(db.Model):
 
     @property
     def max_food(self):
-        """Capienza massima del granaio. Lv1=100, ogni livello +50."""
-        g = self.granaio
-        if g is None:
-            return 100  # default se l'edificio non esiste ancora
-        return 100 + (g.level - 1) * 50
+        """Capienza massima del granaio.
+        Granaio lv1=100, ogni lv +50 → lv28=1450.
+        I Campi aggiungono un bonus 0→50 linearmente (lv1=0, lv28=+50).
+        Con entrambi a 28: 100 + 27*50 + 50 = 1500.
+        """
+        g_lv = self.granaio.level if self.granaio else 1
+        f_lv = self.field.level   if self.field   else 1
+        field_bonus = int((f_lv - 1) * 50 / 27)   # 0 a lv1, esattamente 50 a lv28
+        return 100 + (g_lv - 1) * 50 + field_bonus
 
     @property
     def max_training_ground_spots(self):
@@ -189,10 +193,11 @@ def upgrade_cost(current_level: int) -> int:
 
 # Base cost multipliers per building type
 BUILDING_BASE_COSTS = {
-    'house':          10,
-    'field':          10,
-    'workshop':       10,
+    'house':           10,
+    'field':           10,
+    'workshop':        10,
     'training_ground': 20,
+    'granaio':         20,   # int(20 × 1.5^(lv-1)) attrezzi
 }
 
 # Specialisation strings keyed by gender
@@ -256,10 +261,6 @@ class Building(db.Model):
 
     @property
     def next_level_cost(self):
-        # Il granaio usa la stessa formula esponenziale del livello M:
-        # int(28 × 1.37^(livello-1)) attrezzi
-        if self.type == 'granaio':
-            return m_level_step_cost(self.level)
         base = BUILDING_BASE_COSTS.get(self.type, 10)
         return int(base * (1.5 ** (self.level - 1)))
 
