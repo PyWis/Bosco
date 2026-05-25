@@ -129,6 +129,18 @@ class Village(db.Model):
         return next((b for b in self.buildings if b.type == 'training_ground'), None)
 
     @property
+    def granaio(self):
+        return next((b for b in self.buildings if b.type == 'granaio'), None)
+
+    @property
+    def max_food(self):
+        """Capienza massima del granaio. Lv1=100, ogni livello +50."""
+        g = self.granaio
+        if g is None:
+            return 100  # default se l'edificio non esiste ancora
+        return 100 + (g.level - 1) * 50
+
+    @property
     def max_training_ground_spots(self):
         tg = self.training_ground
         return tg.level * 2 if tg else 0
@@ -235,6 +247,7 @@ class Building(db.Model):
         'field':           'Campi',
         'workshop':        'Officina',
         'training_ground': 'Campo di Addestramento',
+        'granaio':         'Granaio',
     }
 
     @property
@@ -243,6 +256,10 @@ class Building(db.Model):
 
     @property
     def next_level_cost(self):
+        # Il granaio usa la stessa formula esponenziale del livello M:
+        # int(28 × 1.37^(livello-1)) attrezzi
+        if self.type == 'granaio':
+            return m_level_step_cost(self.level)
         base = BUILDING_BASE_COSTS.get(self.type, 10)
         return int(base * (1.5 ** (self.level - 1)))
 
@@ -260,6 +277,9 @@ class Building(db.Model):
             return f"{self.level * 5} lavoratori → {self.level * 5} attrezzi/slot"
         elif self.type == 'training_ground':
             return f"{self.level * 2} abitanti M → 1 pt/slot"
+        elif self.type == 'granaio':
+            cap = 100 + (self.level - 1) * 50
+            return f"Capienza: {cap} cibo (lv{self.level + 1}: {cap + 50})"
         return ''
 
     def __repr__(self):

@@ -85,7 +85,12 @@ def process_village_turn(village: Village, gs: GameState) -> TurnLog:
     village.food  += food_prod
     village.tools += tool_prod
 
-    if food_prod > 0:
+    # Cappa il cibo alla capienza del granaio
+    if village.food > village.max_food:
+        wasted = village.food - village.max_food
+        village.food = village.max_food
+        lines.append(f"🌾 Prodotti {food_prod} cibi dai Campi (persi {wasted}: granaio pieno).")
+    elif food_prod > 0:
         lines.append(f"🌾 Prodotti {food_prod} cibi dai Campi.")
     if tool_prod > 0:
         lines.append(f"⚒️  Prodotti {tool_prod} attrezzi dall'Officina.")
@@ -205,19 +210,29 @@ def process_village_turn(village: Village, gs: GameState) -> TurnLog:
         lines.append("🌾 Le riserve di cibo sono state azzerate dopo la carestia.")
 
     # ------------------------------------------------------------------
-    # 7. New arrival (saltato se il villaggio ha bloccato gli arrivi)
+    # 7. New arrival
+    #    Requisiti: arrivi non bloccati + posto disponibile +
+    #               almeno 10 cibo in riserva. Costo: 5 cibo.
     # ------------------------------------------------------------------
     alive_after = village.alive_inhabitants  # re-eval after deaths
     if village.block_arrivals:
         lines.append("🚫 Arrivi bloccati: nessun nuovo abitante questo turno.")
-    elif len(alive_after) < village.max_inhabitants:
+    elif len(alive_after) >= village.max_inhabitants:
+        pass  # villaggio pieno, silenzio
+    elif village.food < 10:
+        lines.append(
+            f"🍞 Cibo insufficiente per accogliere nuovi abitanti "
+            f"(servono ≥10, disponibili: {village.food})."
+        )
+    else:
         new_inh = _random_inhabitant(village.id)
         db.session.add(new_inh)
         arrivals += 1
+        village.food -= 5
         status = "non può ancora lavorare" if new_inh.age < 18 else "pronto a lavorare"
         lines.append(
             f"👶 {new_inh.full_name} ({new_inh.age} anni) si è unito al villaggio "
-            f"({status})."
+            f"(costo: 5 🌾, {status})."
         )
 
     # ------------------------------------------------------------------

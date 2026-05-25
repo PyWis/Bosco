@@ -5,7 +5,10 @@
 <div class="d-flex align-items-center justify-content-between mb-3">
   <h2 class="mb-0">⚔️ Campo di Addestramento</h2>
   <div>
-    <span class="badge bg-success fs-6 me-2">🌾 {{ village.food }}</span>
+    <span class="badge {% if village.food >= village.max_food %}bg-warning text-dark{% else %}bg-success{% endif %} fs-6 me-2"
+          title="Granaio: {{ village.food }} / {{ village.max_food }}">
+      🌾 {{ village.food }} / {{ village.max_food }}
+    </span>
     <span class="badge bg-secondary fs-6">⚒️  {{ village.tools }}</span>
   </div>
 </div>

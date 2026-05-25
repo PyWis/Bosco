@@ -8,7 +8,11 @@
     <small class="text-muted">{{ village.kingdom_name }} &bull; {{ current_user.kingdom }}</small>
   </div>
   <div class="text-end">
-    <span class="badge bg-success fs-6 me-2">🌾 {{ village.food }} cibo</span>
+    {% set food_pct = ((village.food / village.max_food * 100)|int) if village.max_food > 0 else 0 %}
+    <span class="badge {% if village.food >= village.max_food %}bg-warning text-dark{% else %}bg-success{% endif %} fs-6 me-2"
+          title="Granaio: {{ village.food }} / {{ village.max_food }} ({{ food_pct }}%)">
+      🌾 {{ village.food }} / {{ village.max_food }}
+    </span>
     <span class="badge bg-secondary fs-6">⚒️  {{ village.tools }} attrezzi</span>
   </div>
 </div>
@@ -46,7 +50,12 @@
     <div class="card h-100 building-card {% if bld.upgrade_pending %}border-warning{% endif %}">
       <div class="card-header kingdom-card-header d-flex justify-content-between align-items-center">
         <span>
-          {% if bld.type == 'house' %}🏠{% elif bld.type == 'field' %}🌾{% else %}⚒️ {% endif %}
+          {% if bld.type == 'house' %}🏠
+          {% elif bld.type == 'field' %}🌾
+          {% elif bld.type == 'workshop' %}⚒️
+          {% elif bld.type == 'training_ground' %}⚔️
+          {% elif bld.type == 'granaio' %}🏚️
+          {% endif %}
           {{ bld.label }}
         </span>
         <span class="badge bg-light text-dark">Lv {{ bld.level }}</span>

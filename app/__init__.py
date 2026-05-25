@@ -112,7 +112,7 @@ def _create_starting_village(user: User, village_name: str, kingdom_name: str):
     db.session.flush()  # get village.id
 
     # Starting buildings (level 1)
-    for btype in ('house', 'field', 'workshop', 'training_ground'):
+    for btype in ('house', 'field', 'workshop', 'training_ground', 'granaio'):
         db.session.add(Building(village_id=village.id, type=btype, level=1))
 
     # Starting inhabitants (5, age 18, 50/50 gender)
@@ -166,7 +166,7 @@ def _migrate_villages():
     # --- Edifici mancanti nelle ville esistenti ---
     for village in Village.query.all():
         existing_types = {b.type for b in village.buildings}
-        for btype in ('house', 'field', 'workshop', 'training_ground'):
+        for btype in ('house', 'field', 'workshop', 'training_ground', 'granaio'):
             if btype not in existing_types:
                 db.session.add(Building(village_id=village.id, type=btype, level=1))
     db.session.commit()
